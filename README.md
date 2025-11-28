@@ -1,44 +1,55 @@
 # No_Show_Preventing_App
-노쇼 방지 플랫폼
 
-제공된 MySQL 스키마를 기반으로 한 노쇼 방지형 보증금 예약 플랫폼의  
-Spring Boot + React 레퍼런스 구현체입니다.
+보증금 기반 노쇼 방지 예약 플랫폼 (Spring Boot + React) – 제공된 MySQL 스키마를 그대로 사용합니다.
 
-## 추가된 내용 (What was added)
-- 기존 SQL 스키마(users, venues, services, reservations, payments, reviews, FAQ)에 맞춘 새로운 Spring Boot 백엔드(`spring-backend`)를 추가했습니다.
-- 기존 프론트엔드 라우트가 그대로 동작하도록 API 형태를 맞췄습니다.
-  - `/auth/signup`, `/auth/login`
-  - `/api/venues`
-  - `/api/reservations`
-  - `/api/payments/deposit`
-  - `/api/reviews/venue/{id}`
-- MySQL 스키마는 `spring-backend/src/main/resources/schema.sql` 에 포함되어 있으며,  
-  애플리케이션 기동 시 자동으로 실행됩니다.  
-  (보증금/등급 관련 트리거·프로시저 로직은 DB 트리거 대신 애플리케이션 코드에서 처리합니다.)
+## 주요 기능
+- **전체 스키마 반영**: `spring-backend/src/main/resources/schema.sql`에 있는 테이블/뷰/프로시저/트리거 적용.
+- **인증**: 로컬 회원가입/로그인 + 네이버 OAuth (`NAVER_CLIENT_ID/SECRET/CALLBACK_URL`).
+- **예약**: 30분 단위 슬롯, 상태 흐름 `DEPOSIT_PENDING → BOOKED`, 10분 내 미결제 시 실패/취소 처리, 겹치는 예약 방지.
+- **결제**: 보증금 결제 API, MyReservations에 DEPOSIT_PENDING/FAILED 배지와 결제 버튼 노출.
+- **사장 기능**: 업장/서비스/영업시간/예약 불가 관리, 업장 예약 조회 및 노쇼/강제 취소/완료 처리.
+- **고객 기능**: 마이페이지에 등급/할인율/예약 통계, “내 리뷰” (이미지 포함) 표시. 업장 상세에서 평균 별점과 리뷰 이미지 조회.
+- **리뷰**: 완료된 예약당 1회, 이미지 블롭 저장, `/api/reviews/{id}/image`로 조회.
+- **등급 로직**: `GRADE_AUTO_MIN_ELIGIBLE=4` (4건 미만은 기본 STANDARD), 노쇼율 기반 자동 재산정(프로시저/트리거).
 
-## 사전 준비 사항 (Prerequisites)
-- Java 17+
-- Maven
-- 접속 가능한 MySQL 8.0+
-- Node.js 18+ (`frontend` 폴더의 기존 React 프론트엔드용)
+## 준비물
+- Java 17+, Maven
+- MySQL 8.0+
+- Node.js 18+ (React 프론트)
 
-## 데이터베이스 (Database)
-프롬프트에서 제공된 스키마는 `spring-backend/src/main/resources/schema.sql` 에 포함되어 있습니다.  
-Spring Boot는 `continue-on-error=true` 설정으로 이 스크립트를 기동 시 실행하므로,  
-비어 있는 데이터베이스를 안전하게 초기화할 수 있습니다.
+## 환경 변수 예시
+```
+DB_URL=jdbc:mysql://localhost:3306/noshow_reservation?createDatabaseIfNotExist=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+DB_USERNAME=root
+DB_PASSWORD=비밀번호
+FRONTEND_URL=http://localhost:3000
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+NAVER_CALLBACK_URL=http://localhost:8000/auth/naver/callback
+```
 
-MySQL에는 `noshow_reservation` 데이터베이스에 대해 테이블 생성 권한이 있는 계정이 필요합니다.
-
-환경 변수(선택 사항 – 괄호 안은 기본값):
-- `DB_URL`  
-  (`jdbc:mysql://localhost:3306/noshow_reservation?createDatabaseIfNotExist=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8`)
-- `DB_USERNAME` (`root`)
-- `DB_PASSWORD` (`password`)
-- `FRONTEND_URL` (`http://localhost:3000`)
-- `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` / `NAVER_CALLBACK_URL`  
-  (네이버 로그인 연동 시 필수, 콜백 기본값: `http://localhost:8000/auth/naver/callback`)
-
-## Spring 백엔드 실행 (Run the Spring backend)
-```bash
+## 백엔드 실행
+```
 cd spring-backend
 mvn spring-boot:run
+```
+기동 시 `schema.sql`이 자동 실행되어 빈 DB를 초기화합니다. 스키마를 수정했다면 `mvn clean package`로 `target/classes/schema.sql`을 갱신하세요.
+
+## 프런트 실행
+```
+cd frontend
+npm install
+npm start
+```
+기본 포트는 http://localhost:3000, API 기본 주소는 http://localhost:8000 으로 가정합니다.
+
+## 등급별 보증금 할인 안내 (기본 설정)
+- ELITE: 20% (노쇼 0명 전용)
+- EXCELLENT: 10% (노쇼율 5% 이하)
+- STANDARD: 0% (기본, 노쇼율 20% 이하)
+- POOR: 0% (한계 초과 시 적용)
+
+## 기타
+- 사장 전용 화면: `/my-venues`, `/owner/reservations`
+- 고객 전용: `/my-reservations`, `/mypage`
+- 리뷰는 COMPLETED 예약의 작성자만 가능, 예약당 1개. 이미지 블롭은 `/api/reviews/{id}/image`로 조회.
