@@ -1,50 +1,32 @@
-// frontend/src/App.js
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import AuthCallback from './pages/AuthCallback';
-import Home from './pages/Home';
-import VenueList from './pages/VenueList';
-import VenueDetail from './pages/VenueDetail';
-import MyReservations from './pages/MyReservations';
-import MyVenues from './pages/MyVenues';
-import CreateVenue from './pages/CreateVenue';
-import PrivateRoute from './components/PrivateRoute';
+import { BrowserRouter } from "react-router-dom";
+
+import Header from "./Components/app/Header"
+import Nav from "./Components/app/Nav"
+import Main from "./Components/app/Main"
+import Footer from "./Components/app/Footer"
+import AuthProvider from "./Components/context/AuthProvider"
+import HttpHeadersProvider from "./Components/context/HttpHeadersProvider";
+import "./css/style.css"
 
 function App() {
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
+    <div>
+      <BrowserRouter>
         
-        <Route path="/" element={<Home />} />
-        <Route path="/venues" element={<VenueList />} />
-        <Route path="/venues/:venueId" element={<VenueDetail />} />
+        <Header />
         
-        <Route path="/my-reservations" element={
-          <PrivateRoute>
-            <MyReservations />
-          </PrivateRoute>
-        } />
-        
-        <Route path="/my-venues" element={
-          <PrivateRoute roles={['owner']}>
-            <MyVenues />
-          </PrivateRoute>
-        } />
-        
-        <Route path="/venues/create" element={
-          <PrivateRoute roles={['owner']}>
-            <CreateVenue />
-          </PrivateRoute>
-        } />
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        <AuthProvider>
+          <HttpHeadersProvider>
+            <Nav />
+            <Main />
+          </HttpHeadersProvider>
+        </AuthProvider>
+
+        <Footer />
+
+      </BrowserRouter>
+    </div>
   );
 }
 
