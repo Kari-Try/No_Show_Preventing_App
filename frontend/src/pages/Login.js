@@ -7,8 +7,11 @@ const API_URL = 'http://localhost:8000';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [loginMethod, setLoginMethod] = useState('email'); // email | username | phone
   const [formData, setFormData] = useState({
     email: '',
+    username: '',
+    phone: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -28,13 +31,32 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, formData, {
+      let identifier = '';
+      if (loginMethod === 'email') {
+        identifier = formData.email.trim();
+      } else if (loginMethod === 'username') {
+        identifier = formData.username.trim();
+      } else {
+        identifier = formData.phone.trim();
+      }
+
+      if (!identifier) {
+        setError('로그인 정보를 입력해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        identifier,
+        password: formData.password
+      }, {
         withCredentials: true
       });
       
       if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const payload = response.data.data || response.data;
+        localStorage.setItem('token', payload.token);
+        localStorage.setItem('user', JSON.stringify(payload.user));
         navigate('/');
       }
     } catch (err) {
@@ -52,7 +74,8 @@ const Login = () => {
       
       if (response.data.success) {
         // 네이버 로그인 페이지로 리다이렉트
-        window.location.href = response.data.url;
+        const redirectUrl = response.data.data?.url || response.data.url;
+        window.location.href = redirectUrl || '/login';
       }
     } catch (err) {
       setError('네이버 로그인 연결에 실패했습니다.');
@@ -80,21 +103,97 @@ const Login = () => {
           
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                이메일
+              <label className="block text-sm font-medium text-gray-700">
+                로그인 방식
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="example@email.com"
-              />
+              <div className="flex space-x-4 mt-2">
+                <label className="flex items-center space-x-1 text-sm">
+                  <input
+                    type="radio"
+                    name="loginMethod"
+                    value="email"
+                    checked={loginMethod === 'email'}
+                    onChange={() => setLoginMethod('email')}
+                  />
+                  <span>이메일</span>
+                </label>
+                <label className="flex items-center space-x-1 text-sm">
+                  <input
+                    type="radio"
+                    name="loginMethod"
+                    value="username"
+                    checked={loginMethod === 'username'}
+                    onChange={() => setLoginMethod('username')}
+                  />
+                  <span>아이디</span>
+                </label>
+                <label className="flex items-center space-x-1 text-sm">
+                  <input
+                    type="radio"
+                    name="loginMethod"
+                    value="phone"
+                    checked={loginMethod === 'phone'}
+                    onChange={() => setLoginMethod('phone')}
+                  />
+                  <span>전화번호</span>
+                </label>
+              </div>
             </div>
-            
+
+            {loginMethod === 'email' && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  이메일
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="example@email.com"
+                />
+              </div>
+            )}
+
+            {loginMethod === 'username' && (
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  아이디
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="myid"
+                />
+              </div>
+            )}
+
+            {loginMethod === 'phone' && (
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  전화번호
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="010-1234-5678"
+                />
+              </div>
+            )}
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 비밀번호

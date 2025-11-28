@@ -33,7 +33,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class Reservation {
   public enum Status {
-    BOOKED, COMPLETED, CANCELED, NO_SHOW
+    DEPOSIT_PENDING, BOOKED, COMPLETED, CANCELED, NO_SHOW, DEPOSIT_FAILED
   }
 
   @Id

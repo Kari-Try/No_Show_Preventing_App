@@ -46,6 +46,10 @@ public class VenueController {
   @PostMapping
   public ApiResponse<VenueDto> createVenue(@Valid @RequestBody CreateVenueRequest request, HttpServletRequest servletRequest) {
     User owner = authService.requireUser(servletRequest);
+    boolean isOwner = owner.getUserRoles().stream().anyMatch(ur -> "owner".equalsIgnoreCase(ur.getRole().getRoleName()));
+    if (!isOwner) {
+      throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Only owners can create venues");
+    }
     var venue = venueAppService.createVenue(request, owner);
     return ApiResponse.ok(VenueDto.fromEntity(venue, false));
   }

@@ -1,9 +1,8 @@
 package com.noshow.app.domain.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -15,6 +14,7 @@ import com.noshow.app.domain.entity.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,6 +27,7 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,6 +36,7 @@ public class User {
 
   @Id
   @Column(name = "user_id", nullable = false, length = 30)
+  @EqualsAndHashCode.Include
   private String userId;
 
   @Column(name = "username", nullable = false, length = 30, unique = true)
@@ -52,7 +54,7 @@ public class User {
   @Column(name = "real_name", nullable = false, length = 50)
   private String realName;
 
-  @Enumerated(EnumType.STRING)
+  @Convert(converter = LoginTypeConverter.class)
   @Column(name = "login_type", nullable = false, length = 10)
   private LoginType loginType;
 

@@ -10,6 +10,9 @@ import VenueDetail from './pages/VenueDetail';
 import MyReservations from './pages/MyReservations';
 import MyVenues from './pages/MyVenues';
 import CreateVenue from './pages/CreateVenue';
+import ManageVenue from './pages/ManageVenue';
+import OwnerReservations from './pages/OwnerReservations';
+import MyPage from './pages/MyPage';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -25,17 +28,32 @@ function App() {
         <Route path="/venues/:venueId" element={<VenueDetail />} />
         
         <Route path="/my-reservations" element={
-          <PrivateRoute>
+          <PrivateRoute roles={['customer']}>
             <MyReservations />
           </PrivateRoute>
         } />
-        
+
         <Route path="/my-venues" element={
           <PrivateRoute roles={['owner']}>
             <MyVenues />
           </PrivateRoute>
         } />
-        
+        <Route path="/owner/venues/:venueId/manage" element={
+          <PrivateRoute roles={['owner']}>
+            <ManageVenue />
+          </PrivateRoute>
+        } />
+        <Route path="/owner/reservations" element={
+          <PrivateRoute roles={['owner']}>
+            <OwnerReservations />
+          </PrivateRoute>
+        } />
+        <Route path="/mypage" element={
+          <PrivateRoute roles={['customer']}>
+            <MyPage />
+          </PrivateRoute>
+        } />
+
         <Route path="/venues/create" element={
           <PrivateRoute roles={['owner']}>
             <CreateVenue />

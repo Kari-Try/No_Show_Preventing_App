@@ -1,9 +1,22 @@
 // frontend/src/pages/Home.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const Home = () => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        setUser(null);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -24,14 +37,16 @@ const Home = () => {
                 업장 둘러보기
               </Link>
             </div>
-            <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-              <Link
-                to="/signup"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
-              >
-                회원가입
-              </Link>
-            </div>
+            {!user && (
+              <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
+                <Link
+                  to="/signup"
+                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+                >
+                  회원가입
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

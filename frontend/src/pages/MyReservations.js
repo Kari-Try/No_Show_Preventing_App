@@ -28,7 +28,6 @@ const MyReservations = () => {
       }
 
       const response = await api.get('/api/reservations/my-reservations', { params });
-      
       if (response.data.success) {
         setReservations(response.data.data);
         setPagination(response.data.pagination);
@@ -45,7 +44,7 @@ const MyReservations = () => {
 
   const handleCancelReservation = async () => {
     if (!cancelReason.trim()) {
-      alert('취소 사유를 입력해주세요.');
+      alert('취소 이유를 입력해주세요.');
       return;
     }
 
@@ -68,7 +67,7 @@ const MyReservations = () => {
     }
   };
 
-  const handlePayDeposit = async (reservationId, depositAmount) => {
+  const handlePayDeposit = async (reservationId) => {
     try {
       const response = await api.post('/api/payments/deposit', {
         reservation_id: reservationId,
@@ -87,14 +86,16 @@ const MyReservations = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
+      DEPOSIT_PENDING: { text: '보증금 대기', color: 'bg-yellow-100 text-yellow-800' },
       BOOKED: { text: '예약됨', color: 'bg-blue-100 text-blue-800' },
       COMPLETED: { text: '완료', color: 'bg-green-100 text-green-800' },
-      CANCELED: { text: '취소됨', color: 'bg-gray-100 text-gray-800' },
-      NO_SHOW: { text: '노쇼', color: 'bg-red-100 text-red-800' }
+      CANCELED: { text: '취소', color: 'bg-gray-100 text-gray-800' },
+      NO_SHOW: { text: '노쇼', color: 'bg-red-100 text-red-800' },
+      DEPOSIT_FAILED: { text: '보증금 실패', color: 'bg-red-100 text-red-800' }
     };
 
     const config = statusConfig[status] || { text: status, color: 'bg-gray-100 text-gray-800' };
-    
+
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
         {config.text}
@@ -103,12 +104,10 @@ const MyReservations = () => {
   };
 
   const canCancel = (reservation) => {
-    if (reservation.status !== 'BOOKED') return false;
-    
+    if (!['BOOKED', 'DEPOSIT_PENDING'].includes(reservation.status)) return false;
     const now = new Date();
     const scheduledStart = new Date(reservation.scheduled_start);
     const hoursUntil = (scheduledStart - now) / (1000 * 60 * 60);
-    
     return hoursUntil >= 24;
   };
 
@@ -118,7 +117,7 @@ const MyReservations = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">내 예약</h1>
-          
+
           <div className="flex space-x-2">
             <button
               onClick={() => { setFilter('all'); setPage(1); }}
@@ -129,6 +128,16 @@ const MyReservations = () => {
               }`}
             >
               전체
+            </button>
+            <button
+              onClick={() => { setFilter('DEPOSIT_PENDING'); setPage(1); }}
+              className={`px-4 py-2 rounded-md ${
+                filter === 'DEPOSIT_PENDING'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 border'
+              }`}
+            >
+              보증금 대기
             </button>
             <button
               onClick={() => { setFilter('BOOKED'); setPage(1); }}
@@ -158,7 +167,7 @@ const MyReservations = () => {
                   : 'bg-white text-gray-700 border'
               }`}
             >
-              취소됨
+              취소
             </button>
           </div>
         </div>
@@ -203,7 +212,7 @@ const MyReservations = () => {
                       <span className="ml-2 font-medium">{reservation.party_size}명</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">총 금액:</span>
+                      <span className="text-gray-500">총금액:</span>
                       <span className="ml-2 font-medium">
                         {reservation.total_price_at_booking?.toLocaleString()}원
                       </span>
@@ -216,11 +225,11 @@ const MyReservations = () => {
                     </div>
                   </div>
 
-                  {reservation.status === 'BOOKED' && (
+                  {['BOOKED', 'DEPOSIT_PENDING'].includes(reservation.status) && (
                     <div className="flex space-x-2">
                       {!reservation.payments?.some(p => p.payment_type === 'DEPOSIT' && p.status === 'CAPTURED') && (
                         <button
-                          onClick={() => handlePayDeposit(reservation.reservation_id, reservation.deposit_amount)}
+                          onClick={() => handlePayDeposit(reservation.reservation_id)}
                           className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                         >
                           보증금 결제
@@ -243,7 +252,7 @@ const MyReservations = () => {
                   {reservation.status === 'CANCELED' && reservation.cancel_reason && (
                     <div className="mt-4 p-3 bg-gray-50 rounded">
                       <p className="text-sm text-gray-600">
-                        <span className="font-medium">취소 사유:</span> {reservation.cancel_reason}
+                        <span className="font-medium">취소 이유:</span> {reservation.cancel_reason}
                       </p>
                     </div>
                   )}
@@ -282,12 +291,12 @@ const MyReservations = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold mb-4">예약 취소</h3>
             <p className="text-gray-600 mb-4">
-              예약을 취소하시겠습니까? 취소 사유를 입력해주세요.
+              예약을 취소하시겠습니까? 취소 이유를 입력해주세요.
             </p>
             <textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="취소 사유를 입력하세요"
+              placeholder="취소 이유를 입력하세요"
               rows="4"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

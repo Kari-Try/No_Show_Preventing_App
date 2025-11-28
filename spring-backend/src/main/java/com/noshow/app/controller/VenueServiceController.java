@@ -1,6 +1,8 @@
 package com.noshow.app.controller;
 
 import com.noshow.app.common.ApiResponse;
+import com.noshow.app.domain.entity.AvailabilityBlock;
+import com.noshow.app.domain.entity.BusinessHour;
 import com.noshow.app.dto.VenueServiceDto;
 import com.noshow.app.service.VenueAppService;
 import lombok.RequiredArgsConstructor;
@@ -20,5 +22,15 @@ public class VenueServiceController {
   @GetMapping("/venue/{venueId}")
   public ApiResponse<List<VenueServiceDto>> servicesByVenue(@PathVariable Long venueId) {
     return ApiResponse.ok(venueAppService.servicesByVenue(venueId));
+  }
+
+  @GetMapping("/venue/{venueId}/business-hours")
+  public ApiResponse<List<BusinessHour>> businessHours(@PathVariable Long venueId) {
+    return ApiResponse.ok(venueAppService.businessHours(venueId));
+  }
+
+  @GetMapping("/venue/{venueId}/blocks")
+  public ApiResponse<List<AvailabilityBlock>> blocks(@PathVariable Long venueId) {
+    return ApiResponse.ok(venueAppService.blocks(venueId));
   }
 }

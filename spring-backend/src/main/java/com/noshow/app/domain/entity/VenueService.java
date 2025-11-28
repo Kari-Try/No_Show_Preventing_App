@@ -50,8 +50,11 @@ public class VenueService {
   @Column(name = "duration_minutes", nullable = false)
   private Integer durationMinutes;
 
+  @Column(name = "min_party_size", nullable = false)
+  private Integer minPartySize;
+
   @Column(name = "capacity", nullable = false)
-  private Integer capacity;
+  private Integer maxPartySize;
 
   @Column(name = "deposit_rate_percent")
   private Double depositRatePercent;

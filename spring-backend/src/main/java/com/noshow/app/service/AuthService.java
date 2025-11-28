@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -62,11 +63,19 @@ public class AuthService {
 
   @Transactional
   public AuthResponse signup(SignupRequest request) {
-    userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already registered");
+    if (request.getEmail() != null && !request.getEmail().isBlank()) {
+      userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already registered");
+      });
+    }
+    userRepository.findByUsername(request.getUsername()).ifPresent(u -> {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already registered");
+    });
+    userRepository.findByPhone(request.getPhone()).ifPresent(u -> {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone already registered");
     });
 
-    String username = generateUsername(request.getEmail());
+    String username = request.getUsername();
     String userId = ("u" + UUID.randomUUID().toString().replace("-", "")).substring(0, 16);
     UserGrade defaultGrade = userGradeRepository.findFirstByIsDefaultTrueOrderByPriorityAsc()
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Default grade missing"));
@@ -91,9 +100,13 @@ public class AuthService {
 
     userRepository.save(user);
     assignRole(user, "customer");
-    if ("business".equalsIgnoreCase(request.getUserType())) {
+    if ("owner".equalsIgnoreCase(request.getUserType()) || "business".equalsIgnoreCase(request.getUserType())) {
       assignRole(user, "owner");
     }
+
+    // load roles into entity for response
+    user.getUserRoles().clear();
+    user.getUserRoles().addAll(userRoleRepository.findByUser_UserId(userId));
 
     String token = tokenService.createToken(userId);
     return new AuthResponse(token, UserDto.fromEntity(user));
@@ -101,7 +114,10 @@ public class AuthService {
 
   @Transactional(readOnly = true)
   public AuthResponse login(LoginRequest request) {
-    User user = userRepository.findByEmail(request.getEmail())
+    String id = request.getIdentifier();
+    User user = userRepository.findByEmail(id)
+      .or(() -> userRepository.findByUsername(id))
+      .or(() -> userRepository.findByPhone(id))
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
     if (user.getLoginType() == User.LoginType.NAVER) {
@@ -111,6 +127,10 @@ public class AuthService {
     if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
+
+    // ensure roles are loaded for response
+    user.getUserRoles().clear();
+    user.getUserRoles().addAll(userRoleRepository.findByUser_UserId(user.getUserId()));
 
     String token = tokenService.createToken(user.getUserId());
     return new AuthResponse(token, UserDto.fromEntity(user));
@@ -231,6 +251,9 @@ public class AuthService {
         if (mobile != null) user.setPhone(mobile);
         userRepository.save(user);
       }
+
+      // ensure roles are loaded for response
+      user.getUserRoles().addAll(userRoleRepository.findByUser_UserId(user.getUserId()));
 
       String token = tokenService.createToken(user.getUserId());
       UserDto dto = UserDto.fromEntity(user);

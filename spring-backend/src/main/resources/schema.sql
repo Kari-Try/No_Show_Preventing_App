@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS venue_services (
   description             TEXT NULL,
   price                   DECIMAL(12,2) NOT NULL,
   duration_minutes        SMALLINT UNSIGNED NOT NULL,
+  min_party_size          INT UNSIGNED NOT NULL DEFAULT 1,
   capacity                INT UNSIGNED NOT NULL DEFAULT 1,
   deposit_rate_percent    DECIMAL(5,2) NULL,
   is_active               BOOLEAN NOT NULL DEFAULT TRUE,
@@ -173,7 +174,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   party_size                       SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   scheduled_start                  DATETIME NOT NULL,
   scheduled_end                    DATETIME NOT NULL,
-  status                           ENUM('BOOKED','COMPLETED','CANCELED','NO_SHOW') NOT NULL DEFAULT 'BOOKED',
+  status                           ENUM('DEPOSIT_PENDING','BOOKED','COMPLETED','CANCELED','NO_SHOW','DEPOSIT_FAILED') NOT NULL DEFAULT 'DEPOSIT_PENDING',
   booked_at                        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   canceled_at                      DATETIME NULL,
   canceled_by_user_id              VARCHAR(30) NULL,
@@ -187,7 +188,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   currency                         CHAR(3) NOT NULL DEFAULT 'KRW',
   created_at                       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at                       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_exact_slot (service_id, scheduled_start),
+  UNIQUE KEY uq_exact_slot (service_id, scheduled_start, status),
   KEY ix_resv_customer (customer_user_id, booked_at),
   KEY ix_resv_venue_time (venue_id, scheduled_start),
   CONSTRAINT ck_resv_times CHECK (scheduled_start < scheduled_end),
@@ -256,3 +257,217 @@ CREATE TABLE IF NOT EXISTS venue_faq (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_faq_venue FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- 7) 관리자 뷰
+CREATE OR REPLACE VIEW v_admin_overview AS
+SELECT
+  (SELECT COUNT(*) FROM users) AS total_users,
+  (SELECT COUNT(*) FROM user_roles ur JOIN roles r ON r.role_id = ur.role_id WHERE r.role_name = 'owner')    AS total_owners,
+  (SELECT COUNT(*) FROM user_roles ur JOIN roles r ON r.role_id = ur.role_id WHERE r.role_name = 'customer') AS total_customers,
+  (SELECT COUNT(*) FROM venues) AS total_venues,
+  (SELECT COUNT(*) FROM reservations
+     WHERE YEAR(booked_at) = YEAR(CURDATE()) AND MONTH(booked_at) = MONTH(CURDATE())) AS reservations_this_month,
+  (SELECT COUNT(*) FROM reservations
+     WHERE status = 'NO_SHOW' AND YEAR(booked_at) = YEAR(CURDATE()) AND MONTH(booked_at) = MONTH(CURDATE())) AS noshows_this_month;
+
+CREATE OR REPLACE VIEW v_monthly_reservation_stats AS
+SELECT DATE_FORMAT(booked_at, '%Y-%m') AS ym,
+       COUNT(*) AS total_resv,
+       SUM(status = 'NO_SHOW')     AS noshow_cnt,
+       SUM(status = 'COMPLETED')   AS completed_cnt,
+       SUM(status = 'CANCELED')    AS canceled_cnt
+FROM reservations
+GROUP BY DATE_FORMAT(booked_at, '%Y-%m')
+ORDER BY ym DESC;
+
+CREATE OR REPLACE VIEW v_user_grade_counts AS
+SELECT g.grade_name, COUNT(u.user_id) AS users_in_grade
+FROM user_grades g
+LEFT JOIN users u ON u.grade_id = g.grade_id
+GROUP BY g.grade_id, g.grade_name
+ORDER BY users_in_grade DESC;
+
+-- 8) 프로시저 : 등급 자동 재산정
+DELIMITER $$
+
+CREATE PROCEDURE sp_recalc_user_grade(IN p_user_id VARCHAR(30))
+BEGIN
+  DECLARE v_success       INT UNSIGNED DEFAULT 0;
+  DECLARE v_noshow        INT UNSIGNED DEFAULT 0;
+  DECLARE v_eligible      INT UNSIGNED DEFAULT 0;
+  DECLARE v_rate          DECIMAL(8,6) DEFAULT 0;
+  DECLARE v_min_auto      INT UNSIGNED DEFAULT 4;
+  DECLARE v_new_grade_id  SMALLINT UNSIGNED;
+  DECLARE v_cur_grade_id  SMALLINT UNSIGNED;
+
+  SELECT COALESCE(CAST(policy_value AS UNSIGNED), 4)
+    INTO v_min_auto
+    FROM system_settings WHERE policy_key = 'GRADE_AUTO_MIN_ELIGIBLE'
+    LIMIT 1;
+
+  SELECT
+    SUM(CASE WHEN r.status = 'COMPLETED' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN r.status = 'NO_SHOW'   THEN 1 ELSE 0 END)
+  INTO v_success, v_noshow
+  FROM reservations r
+  WHERE r.customer_user_id = p_user_id;
+
+  SET v_success  = IFNULL(v_success, 0);
+  SET v_noshow   = IFNULL(v_noshow, 0);
+  SET v_eligible = v_success + v_noshow;
+  SET v_rate     = CASE WHEN v_eligible > 0 THEN v_noshow / v_eligible ELSE 0 END;
+
+  UPDATE users
+     SET success_count = v_success,
+         no_show_count = v_noshow
+   WHERE user_id = p_user_id;
+
+  IF v_eligible < v_min_auto THEN
+    SELECT grade_id INTO v_new_grade_id
+      FROM user_grades WHERE is_default = TRUE ORDER BY priority LIMIT 1;
+
+  ELSE
+    IF v_noshow = 0 THEN
+      SELECT grade_id INTO v_new_grade_id
+        FROM user_grades WHERE require_no_show_zero = TRUE
+        ORDER BY priority LIMIT 1;
+    ELSE
+      SELECT grade_id INTO v_new_grade_id
+        FROM user_grades
+       WHERE max_no_show_rate IS NOT NULL
+         AND v_rate <= max_no_show_rate
+       ORDER BY priority
+       LIMIT 1;
+
+      IF v_new_grade_id IS NULL THEN
+        SELECT grade_id INTO v_new_grade_id
+          FROM user_grades
+         WHERE max_no_show_rate IS NULL
+           AND require_no_show_zero = FALSE
+         ORDER BY priority
+         LIMIT 1;
+      END IF;
+    END IF;
+  END IF;
+
+  SELECT grade_id INTO v_cur_grade_id FROM users WHERE user_id = p_user_id;
+
+  IF v_new_grade_id IS NOT NULL AND v_new_grade_id <> v_cur_grade_id THEN
+    UPDATE users SET grade_id = v_new_grade_id WHERE user_id = p_user_id;
+    INSERT INTO user_grade_assignments (user_id, grade_id, assigned_at, assigned_by)
+    VALUES (p_user_id, v_new_grade_id, NOW(), NULL);
+  END IF;
+END$$
+
+CREATE PROCEDURE sp_recalc_all_user_grades()
+BEGIN
+  DECLARE done INT DEFAULT 0;
+  DECLARE v_uid VARCHAR(30);
+  DECLARE cur CURSOR FOR SELECT user_id FROM users WHERE is_active = TRUE;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+  OPEN cur;
+  read_loop: LOOP
+    FETCH cur INTO v_uid;
+    IF done = 1 THEN
+      LEAVE read_loop;
+    END IF;
+    CALL sp_recalc_user_grade(v_uid);
+  END LOOP;
+  CLOSE cur;
+END$$
+
+-- 9) 트리거 : 기본등급/스냅샷/리뷰/등급재산정
+
+CREATE TRIGGER bi_users_set_default_grade
+BEFORE INSERT ON users
+FOR EACH ROW
+BEGIN
+  IF NEW.grade_id IS NULL THEN
+    SET NEW.grade_id = (SELECT grade_id FROM user_grades WHERE is_default = TRUE ORDER BY priority LIMIT 1);
+  END IF;
+END$$
+
+CREATE TRIGGER bi_reservations_snapshot
+BEFORE INSERT ON reservations
+FOR EACH ROW
+BEGIN
+  DECLARE v_deposit_rate DECIMAL(5,2);
+  DECLARE v_grade_id SMALLINT UNSIGNED;
+  DECLARE v_grade_disc DECIMAL(5,2);
+
+  SELECT COALESCE(vs.deposit_rate_percent, v.default_deposit_rate_percent)
+    INTO v_deposit_rate
+    FROM venue_services vs
+    JOIN venues v ON v.venue_id = vs.venue_id
+   WHERE vs.service_id = NEW.service_id;
+
+  SELECT u.grade_id, COALESCE(g.deposit_discount_percent, 0.00)
+    INTO v_grade_id, v_grade_disc
+    FROM users u
+    LEFT JOIN user_grades g ON g.grade_id = u.grade_id
+   WHERE u.user_id = NEW.customer_user_id;
+
+  SET NEW.applied_deposit_rate_percent   = v_deposit_rate;
+  SET NEW.applied_grade_id               = v_grade_id;
+  SET NEW.applied_grade_discount_percent = v_grade_disc;
+
+  IF NEW.total_price_at_booking IS NULL OR NEW.total_price_at_booking = 0 THEN
+    SELECT price INTO NEW.total_price_at_booking
+      FROM venue_services WHERE service_id = NEW.service_id;
+    SET NEW.total_price_at_booking = NEW.total_price_at_booking * NEW.party_size;
+  END IF;
+
+  SET NEW.deposit_amount =
+    ROUND(NEW.total_price_at_booking * (NEW.applied_deposit_rate_percent/100.0)
+          * (1 - (NEW.applied_grade_discount_percent/100.0)), 0);
+
+  IF NEW.currency IS NULL THEN
+    SET NEW.currency = 'KRW';
+  END IF;
+END$$
+
+CREATE TRIGGER bi_reviews_only_completed
+BEFORE INSERT ON reviews
+FOR EACH ROW
+BEGIN
+  DECLARE v_status VARCHAR(20);
+  DECLARE v_user   VARCHAR(30);
+  DECLARE v_venue  BIGINT UNSIGNED;
+
+  SELECT status, customer_user_id, venue_id
+    INTO v_status, v_user, v_venue
+    FROM reservations
+   WHERE reservation_id = NEW.reservation_id;
+
+  IF v_status <> 'COMPLETED' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Review allowed only for COMPLETED reservations.';
+  END IF;
+
+  IF v_user <> NEW.user_id THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Review must be written by the reservation owner.';
+  END IF;
+
+  SET NEW.venue_id = v_venue;
+END$$
+
+CREATE TRIGGER ai_reservations_refresh_grade
+AFTER INSERT ON reservations
+FOR EACH ROW
+BEGIN
+  IF NEW.status IN ('COMPLETED','NO_SHOW') THEN
+    CALL sp_recalc_user_grade(NEW.customer_user_id);
+  END IF;
+END$$
+
+CREATE TRIGGER au_reservations_refresh_grade
+AFTER UPDATE ON reservations
+FOR EACH ROW
+BEGIN
+  IF OLD.status <> NEW.status
+     AND (OLD.status IN ('COMPLETED','NO_SHOW') OR NEW.status IN ('COMPLETED','NO_SHOW')) THEN
+    CALL sp_recalc_user_grade(NEW.customer_user_id);
+  END IF;
+END$$
+
+DELIMITER ;

@@ -2,6 +2,7 @@ package com.noshow.app.common;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,5 +39,11 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Object>> handleGeneric(Exception ex) {
     ApiResponse<Object> response = ApiResponse.fail("Server error: " + ex.getMessage());
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiResponse<Object>> handleConstraint(DataIntegrityViolationException ex) {
+    String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : "Constraint violation";
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail("Constraint violation: " + msg));
   }
 }

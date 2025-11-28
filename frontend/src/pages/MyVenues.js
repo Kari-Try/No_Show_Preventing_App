@@ -113,10 +113,10 @@ const MyVenues = () => {
                   )}
                   <div className="flex space-x-2">
                     <Link
-                      to={`/venues/${venue.venue_id}`}
+                      to={`/owner/venues/${venue.venue_id}/manage`}
                       className="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
-                      상세보기
+                      관리
                     </Link>
                     <button
                       onClick={() => {

@@ -14,7 +14,8 @@ public class VenueServiceDto {
   private String description;
   private BigDecimal price;
   private Integer durationMinutes;
-  private Integer capacity;
+  private Integer minPartySize;
+  private Integer maxPartySize;
   private Double depositRatePercent;
   private Boolean isActive;
 
@@ -25,7 +26,8 @@ public class VenueServiceDto {
       .description(service.getDescription())
       .price(service.getPrice())
       .durationMinutes(service.getDurationMinutes())
-      .capacity(service.getCapacity())
+      .minPartySize(service.getMinPartySize())
+      .maxPartySize(service.getMaxPartySize())
       .depositRatePercent(service.getDepositRatePercent())
       .isActive(service.getIsActive())
       .build();

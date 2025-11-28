@@ -9,6 +9,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
+    username: '',
     password: '',
     confirmPassword: '',
     name: '',
@@ -27,6 +28,14 @@ const Signup = () => {
   };
 
   const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('아이디를 입력해주세요.');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError('전화번호를 입력해주세요.');
+      return false;
+    }
     if (formData.password !== formData.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return false;
@@ -53,10 +62,11 @@ const Signup = () => {
     try {
       const response = await axios.post(`${API_URL}/auth/signup`, {
         email: formData.email,
+        username: formData.username,
         password: formData.password,
         name: formData.name,
         phone: formData.phone,
-        userType: formData.userType
+        user_type: formData.userType
       }, {
         withCredentials: true
       });
@@ -79,7 +89,8 @@ const Signup = () => {
       });
       
       if (response.data.success) {
-        window.location.href = response.data.url;
+        const redirectUrl = response.data.data?.url || response.data.url;
+        window.location.href = redirectUrl || '/login';
       }
     } catch (err) {
       setError('네이버 로그인 연결에 실패했습니다.');
@@ -123,8 +134,8 @@ const Signup = () => {
                   <input
                     type="radio"
                     name="userType"
-                    value="business"
-                    checked={formData.userType === 'business'}
+                    value="owner"
+                    checked={formData.userType === 'owner'}
                     onChange={handleChange}
                     className="mr-2"
                   />
@@ -149,14 +160,28 @@ const Signup = () => {
             </div>
 
             <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                아이디
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                value={formData.username}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                이메일
+                이메일 (선택)
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
-                required
                 value={formData.email}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"

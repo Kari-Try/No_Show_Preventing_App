@@ -10,6 +10,8 @@ import com.noshow.app.domain.repository.PaymentRepository;
 import com.noshow.app.domain.repository.ReservationRepository;
 import com.noshow.app.domain.repository.UserGradeRepository;
 import com.noshow.app.domain.repository.VenueServiceRepository;
+import com.noshow.app.domain.repository.BusinessHourRepository;
+import com.noshow.app.domain.repository.AvailabilityBlockRepository;
 import com.noshow.app.dto.CancelReservationRequest;
 import com.noshow.app.dto.CreateReservationRequest;
 import com.noshow.app.dto.PaymentDto;
@@ -27,6 +29,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,14 +43,62 @@ public class ReservationService {
   private final VenueServiceRepository venueServiceRepository;
   private final UserGradeRepository userGradeRepository;
   private final PaymentRepository paymentRepository;
+  private final BusinessHourRepository businessHourRepository;
+  private final AvailabilityBlockRepository availabilityBlockRepository;
 
   @Transactional
   public ReservationDto createReservation(CreateReservationRequest request, User customer) {
     VenueService service = venueServiceRepository.findById(request.getServiceId())
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
 
-    LocalDateTime start = LocalDateTime.parse(request.getScheduledStart());
+    LocalDateTime start = parseDateTime(request.getScheduledStart());
     LocalDateTime end = start.plusMinutes(service.getDurationMinutes());
+
+    // 30분 단위 체크
+    if (start.getMinute() % 30 != 0) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "예약 시간은 30분 단위로만 가능합니다.");
+    }
+
+    // party size validation
+    int minParty = service.getMinPartySize() != null ? service.getMinPartySize() : 1;
+    int maxParty = service.getMaxPartySize() != null ? service.getMaxPartySize() : minParty;
+    if (request.getPartySize() < minParty || request.getPartySize() > maxParty) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인원은 " + minParty + " ~ " + maxParty + "명만 가능합니다.");
+    }
+
+    // business hours validation (30m aligned)
+    LocalDate date = start.toLocalDate();
+    int dow = start.getDayOfWeek().getValue() % 7; // Java Mon=1 -> 1; we need 0=Sun
+    List<com.noshow.app.domain.entity.BusinessHour> hours = businessHourRepository.findByVenue_VenueId(service.getVenue().getVenueId());
+    boolean withinHours = hours.stream().anyMatch(h -> {
+      if (h.getDayOfWeek() != dow) return false;
+      LocalTime open = h.getOpenTime();
+      LocalTime close = h.getCloseTime();
+      return !start.toLocalTime().isBefore(open) && !end.toLocalTime().isAfter(close);
+    });
+    if (!withinHours) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "영업 시간 내에서만 예약 가능합니다.");
+    }
+
+    // availability blocks validation
+    List<com.noshow.app.domain.entity.AvailabilityBlock> blocks = availabilityBlockRepository.findByVenue_VenueId(service.getVenue().getVenueId());
+    boolean blocked = blocks.stream().anyMatch(b -> {
+      if (!b.getBlockDate().equals(date)) return false;
+      LocalTime s = b.getStartTime();
+      LocalTime e = b.getEndTime();
+      return start.toLocalTime().isBefore(e) && end.toLocalTime().isAfter(s);
+    });
+    if (blocked) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "해당 시간은 예약이 불가합니다.");
+    }
+
+    // overlap validation with active reservations
+    List<Reservation.Status> activeStatuses = List.of(Reservation.Status.DEPOSIT_PENDING, Reservation.Status.BOOKED);
+    boolean overlap = reservationRepository.existsByServiceAndStatusInAndScheduledStartLessThanAndScheduledEndGreaterThan(
+      service, activeStatuses, end, start);
+    if (overlap) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "해당 시간대는 이미 예약 진행 중입니다.");
+    }
 
     BigDecimal totalPrice = service.getPrice().multiply(BigDecimal.valueOf(request.getPartySize()));
     double depositRate = service.getDepositRatePercent() != null
@@ -67,7 +121,7 @@ public class ReservationService {
       .partySize(request.getPartySize())
       .scheduledStart(start)
       .scheduledEnd(end)
-      .status(Reservation.Status.BOOKED)
+      .status(Reservation.Status.DEPOSIT_PENDING)
       .totalPriceAtBooking(totalPrice)
       .appliedDepositRatePercent(depositRate)
       .appliedGrade(grade != null ? grade : userGradeRepository.findFirstByIsDefaultTrueOrderByPriorityAsc().orElse(null))
@@ -78,6 +132,18 @@ public class ReservationService {
 
     reservationRepository.save(reservation);
     return ReservationDto.fromEntity(reservation, true);
+  }
+
+  private LocalDateTime parseDateTime(String value) {
+    try {
+      if (value.endsWith("Z") || value.matches(".*[+-]\\d{2}:?\\d{2}$")) {
+        // convert to server default timezone
+        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+      }
+      return LocalDateTime.parse(value);
+    } catch (Exception e) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 시간 형식입니다.");
+    }
   }
 
   @Transactional(readOnly = true)
@@ -95,6 +161,18 @@ public class ReservationService {
     return new ReservationsPage(data, pagination);
   }
 
+  @Transactional(readOnly = true)
+  public ReservationsPage listOwnerReservations(User owner, Long venueId, int page, int limit) {
+    VenueService dummy = new VenueService(); // just to avoid import issues (not used)
+    PageRequest pageable = PageRequest.of(Math.max(page - 1, 0), limit, Sort.by(Sort.Direction.DESC, "bookedAt"));
+    Page<Reservation> result = reservationRepository.findByVenue_VenueId(venueId, pageable);
+    List<ReservationDto> data = result.getContent().stream()
+      .map(r -> ReservationDto.fromEntity(r, true))
+      .collect(Collectors.toList());
+    Pagination pagination = new Pagination(result.getNumber() + 1, result.getSize(), result.getTotalElements(), result.getTotalPages());
+    return new ReservationsPage(data, pagination);
+  }
+
   @Transactional
   public ReservationDto cancelReservation(Long reservationId, CancelReservationRequest request, User user) {
     Reservation reservation = reservationRepository.findById(reservationId)
@@ -103,7 +181,7 @@ public class ReservationService {
     if (!reservation.getCustomer().getUserId().equals(user.getUserId())) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the owner can cancel");
     }
-    if (reservation.getStatus() != Reservation.Status.BOOKED) {
+    if (reservation.getStatus() != Reservation.Status.BOOKED && reservation.getStatus() != Reservation.Status.DEPOSIT_PENDING) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reservation is not cancellable");
     }
 
@@ -130,10 +208,17 @@ public class ReservationService {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the booker can pay the deposit");
     }
 
-    boolean alreadyPaid = reservation.getPayments().stream()
-      .anyMatch(p -> p.getPaymentType() == Payment.PaymentType.DEPOSIT && p.getStatus() == Payment.Status.CAPTURED);
-    if (alreadyPaid) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deposit already paid");
+    if (reservation.getStatus() == Reservation.Status.DEPOSIT_PENDING) {
+      LocalDateTime expiry = reservation.getCreatedAt() != null ? reservation.getCreatedAt().plusMinutes(10) : LocalDateTime.now();
+      if (LocalDateTime.now().isAfter(expiry)) {
+        reservation.setStatus(Reservation.Status.DEPOSIT_FAILED);
+        reservationRepository.save(reservation);
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 시간이 만료되었습니다.");
+      }
+    }
+
+    if (reservation.getStatus() != Reservation.Status.DEPOSIT_PENDING) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 대기 상태가 아닙니다.");
     }
 
     Payment payment = Payment.builder()
@@ -148,7 +233,35 @@ public class ReservationService {
       .build();
 
     paymentRepository.save(payment);
+    reservation.setStatus(Reservation.Status.BOOKED);
+    reservationRepository.save(reservation);
     return PaymentDto.fromEntity(payment);
+  }
+
+  @Transactional
+  public ReservationDto ownerUpdateStatus(Long reservationId, String action, String reason, User owner) {
+    Reservation reservation = reservationRepository.findById(reservationId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found"));
+
+    if (!reservation.getVenue().getOwner().getUserId().equals(owner.getUserId())) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only venue owner can manage reservations");
+    }
+
+    if ("NO_SHOW".equalsIgnoreCase(action)) {
+      reservation.setStatus(Reservation.Status.NO_SHOW);
+    } else if ("CANCEL".equalsIgnoreCase(action)) {
+      reservation.setStatus(Reservation.Status.CANCELED);
+      reservation.setCancelReason(reason);
+      reservation.setCanceledAt(LocalDateTime.now());
+      reservation.setCanceledBy(owner);
+    } else if ("COMPLETE".equalsIgnoreCase(action) || "COMPLETED".equalsIgnoreCase(action)) {
+      reservation.setStatus(Reservation.Status.COMPLETED);
+    } else {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action");
+    }
+
+    reservationRepository.save(reservation);
+    return ReservationDto.fromEntity(reservation, true);
   }
 
   public record ReservationsPage(List<ReservationDto> data, Pagination pagination) {}

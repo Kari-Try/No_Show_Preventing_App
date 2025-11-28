@@ -10,6 +10,8 @@ const VenueDetail = () => {
   const [venue, setVenue] = useState(null);
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [businessHours, setBusinessHours] = useState([]);
+  const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -20,6 +22,8 @@ const VenueDetail = () => {
     fetchVenueDetail();
     fetchServices();
     fetchReviews();
+    fetchBusinessHours();
+    fetchBlocks();
   }, [venueId]);
 
   const fetchVenueDetail = async () => {
@@ -57,6 +61,24 @@ const VenueDetail = () => {
     }
   };
 
+  const fetchBusinessHours = async () => {
+    try {
+      const response = await api.get(`/api/services/venue/${venueId}/business-hours`);
+      if (response.data.success) setBusinessHours(response.data.data || []);
+    } catch (error) {
+      console.error('Fetch business hours error:', error);
+    }
+  };
+
+  const fetchBlocks = async () => {
+    try {
+      const response = await api.get(`/api/services/venue/${venueId}/blocks`);
+      if (response.data.success) setBlocks(response.data.data || []);
+    } catch (error) {
+      console.error('Fetch blocks error:', error);
+    }
+  };
+
   const handleReservation = async () => {
     if (!selectedService || !selectedDate || !selectedTime) {
       alert('모든 정보를 입력해주세요.');
@@ -71,11 +93,11 @@ const VenueDetail = () => {
     }
 
     try {
-      const scheduledStart = new Date(`${selectedDate}T${selectedTime}`);
+      const scheduledStart = `${selectedDate}T${selectedTime}`;
       
       const response = await api.post('/api/reservations', {
         service_id: selectedService,
-        scheduled_start: scheduledStart.toISOString(),
+        scheduled_start: scheduledStart,
         party_size: partySize
       });
 
@@ -201,6 +223,32 @@ const VenueDetail = () => {
                 예약하기
               </button>
             </div>
+
+            {businessHours.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">영업시간</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {businessHours.map((bh) => (
+                    <li key={bh.business_hour_id}>
+                      {['일','월','화','수','목','금','토'][bh.day_of_week]} {bh.open_time} ~ {bh.close_time}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {blocks.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">예약 불가</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {blocks.map((b) => (
+                    <li key={b.block_id}>
+                      {b.block_date} {b.start_time} ~ {b.end_time} {b.reason ? `(${b.reason})` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
