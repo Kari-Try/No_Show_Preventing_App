@@ -25,12 +25,16 @@ public class ReviewService {
   @Transactional(readOnly = true)
   public List<ReviewDto> reviewsByVenue(Long venueId) {
     return reviewRepository.findByVenue_VenueIdOrderByCreatedAtDesc(venueId).stream()
-      .map(ReviewDto::fromEntity)
+      .map(r -> {
+        ReviewDto dto = ReviewDto.fromEntity(r);
+        dto.setHasImage(r.getImageData() != null);
+        return dto;
+      })
       .collect(Collectors.toList());
   }
 
   @Transactional
-  public ReviewDto createReview(CreateReviewRequest request, User writer) {
+  public ReviewDto createReview(CreateReviewRequest request, User writer, byte[] imageBytes, String mimeType) {
     Reservation reservation = reservationRepository.findById(request.getReservationId())
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found"));
 
@@ -40,6 +44,9 @@ public class ReviewService {
     if (reservation.getStatus() != Reservation.Status.COMPLETED) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only completed reservations can be reviewed");
     }
+    if (reviewRepository.existsByReservation_ReservationId(reservation.getReservationId())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미 리뷰를 작성했습니다.");
+    }
 
     Review review = Review.builder()
       .reservation(reservation)
@@ -47,10 +54,24 @@ public class ReviewService {
       .user(writer)
       .rating(request.getRating())
       .content(request.getContent())
-      .imageUrl(request.getImageUrl())
+      .imageData(imageBytes)
+      .imageMimeType(mimeType)
       .build();
 
     reviewRepository.save(review);
-    return ReviewDto.fromEntity(review);
+    ReviewDto dto = ReviewDto.fromEntity(review);
+    dto.setHasImage(imageBytes != null);
+    return dto;
+  }
+
+  @Transactional(readOnly = true)
+  public List<ReviewDto> reviewsByUser(String userId) {
+    return reviewRepository.findByUser_UserIdOrderByCreatedAtDesc(userId).stream()
+      .map(r -> {
+        ReviewDto dto = ReviewDto.fromEntity(r);
+        dto.setHasImage(r.getImageData() != null);
+        return dto;
+      })
+      .collect(Collectors.toList());
   }
 }

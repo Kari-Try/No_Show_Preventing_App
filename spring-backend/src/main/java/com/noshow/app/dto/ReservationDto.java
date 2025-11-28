@@ -24,8 +24,13 @@ public class ReservationDto {
   private VenueDto venue;
   private VenueServiceDto service;
   private List<PaymentDto> payments;
+  private Boolean hasReview;
 
   public static ReservationDto fromEntity(Reservation reservation, boolean includePayments) {
+    return fromEntity(reservation, includePayments, null);
+  }
+
+  public static ReservationDto fromEntity(Reservation reservation, boolean includePayments, Boolean hasReview) {
     List<PaymentDto> paymentDtos = null;
     if (includePayments && reservation.getPayments() != null) {
       paymentDtos = reservation.getPayments().stream()
@@ -46,6 +51,7 @@ public class ReservationDto {
       .venue(reservation.getVenue() != null ? VenueDto.fromEntity(reservation.getVenue(), false) : null)
       .service(reservation.getService() != null ? VenueServiceDto.fromEntity(reservation.getService()) : null)
       .payments(paymentDtos)
+      .hasReview(hasReview)
       .build();
   }
 }

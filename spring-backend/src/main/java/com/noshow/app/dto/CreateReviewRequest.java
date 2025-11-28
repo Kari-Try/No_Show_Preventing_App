@@ -18,5 +18,5 @@ public class CreateReviewRequest {
   @NotBlank
   private String content;
 
-  private String imageUrl;
+  // image handled via multipart; blob only
 }

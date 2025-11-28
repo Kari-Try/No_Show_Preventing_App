@@ -8,6 +8,7 @@ import com.noshow.app.domain.entity.UserGrade;
 import com.noshow.app.domain.entity.VenueService;
 import com.noshow.app.domain.repository.PaymentRepository;
 import com.noshow.app.domain.repository.ReservationRepository;
+import com.noshow.app.domain.repository.ReviewRepository;
 import com.noshow.app.domain.repository.UserGradeRepository;
 import com.noshow.app.domain.repository.VenueServiceRepository;
 import com.noshow.app.domain.repository.BusinessHourRepository;
@@ -43,6 +44,7 @@ public class ReservationService {
   private final VenueServiceRepository venueServiceRepository;
   private final UserGradeRepository userGradeRepository;
   private final PaymentRepository paymentRepository;
+  private final ReviewRepository reviewRepository;
   private final BusinessHourRepository businessHourRepository;
   private final AvailabilityBlockRepository availabilityBlockRepository;
 
@@ -155,7 +157,7 @@ public class ReservationService {
       result = reservationRepository.findByCustomer_UserIdAndStatus(user.getUserId(), st, pageable);
     }
     List<ReservationDto> data = result.getContent().stream()
-      .map(r -> ReservationDto.fromEntity(r, true))
+      .map(r -> ReservationDto.fromEntity(r, true, reviewRepository.existsByReservation_ReservationId(r.getReservationId())))
       .collect(Collectors.toList());
     Pagination pagination = new Pagination(result.getNumber() + 1, result.getSize(), result.getTotalElements(), result.getTotalPages());
     return new ReservationsPage(data, pagination);
