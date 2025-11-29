@@ -142,6 +142,16 @@ CREATE TABLE IF NOT EXISTS venue_services (
     ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS venue_images (
+  image_id     BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  venue_id     BIGINT UNSIGNED NOT NULL,
+  image_data   LONGBLOB NOT NULL,
+  mime_type    VARCHAR(100) NOT NULL,
+  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vi_venue FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  KEY ix_vi_venue (venue_id, created_at)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS business_hours (
   business_hour_id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   venue_id         BIGINT UNSIGNED NOT NULL,

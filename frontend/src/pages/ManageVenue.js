@@ -14,6 +14,7 @@ const ManageVenue = () => {
   const [businessHours, setBusinessHours] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [faqs, setFaqs] = useState([]);
+  const [images, setImages] = useState([]);
 
   const [serviceForm, setServiceForm] = useState({
     service_name: '',
@@ -44,6 +45,8 @@ const ManageVenue = () => {
     is_active: true
   });
 
+  const [imageFile, setImageFile] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -54,6 +57,7 @@ const ManageVenue = () => {
     fetchBusinessHours();
     fetchBlocks();
     fetchFaqs();
+    fetchImages();
   }, [venueId]);
 
   const fetchVenue = async () => {
@@ -99,6 +103,15 @@ const ManageVenue = () => {
     try {
       const res = await api.get(`/api/owner/faq/${venueId}`);
       if (res.data.success) setFaqs(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchImages = async () => {
+    try {
+      const res = await api.get(`/api/owner/venues/${venueId}/images`);
+      if (res.data.success) setImages(res.data.data || res.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -226,6 +239,39 @@ const ManageVenue = () => {
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'FAQ 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    e.preventDefault();
+    if (!imageFile) return;
+    setError('');
+    setSuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      const res = await api.post(`/api/owner/venues/${venueId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.success) {
+        setSuccess('이미지를 업로드했습니다.');
+        setImageFile(null);
+        fetchImages();
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    try {
+      await api.delete(`/api/owner/venues/images/${imageId}`);
+      setSuccess('이미지를 삭제했습니다.');
+      fetchImages();
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || '이미지 삭제에 실패했습니다.');
     }
   };
 
@@ -548,6 +594,43 @@ const ManageVenue = () => {
                       삭제
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">업장 이미지</h2>
+          <form className="space-y-3 mb-4" onSubmit={handleImageUpload}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              className="w-full"
+              required
+            />
+            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
+              이미지 업로드
+            </button>
+          </form>
+          {images.length === 0 ? (
+            <p className="text-gray-500">등록된 이미지가 없습니다.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {images.map((img) => (
+                <div key={img.imageId || img.image_id} className="border rounded p-2 flex flex-col space-y-2">
+                  <img
+                    src={`/api/venues/images/${img.imageId || img.image_id}`}
+                    alt="업장 이미지"
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <button
+                    onClick={() => handleDeleteImage(img.imageId || img.image_id)}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    삭제
+                  </button>
                 </div>
               ))}
             </div>

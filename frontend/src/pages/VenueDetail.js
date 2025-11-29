@@ -16,6 +16,7 @@ const VenueDetail = () => {
   const [businessHours, setBusinessHours] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [faqs, setFaqs] = useState([]);
+  const [images, setImages] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +32,7 @@ const VenueDetail = () => {
     fetchBusinessHours();
     fetchBlocks();
     fetchFaqs();
+    fetchImages();
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -103,6 +105,17 @@ const VenueDetail = () => {
       if (res.data.success) setFaqs(res.data.data || []);
     } catch (err) {
       console.error('Fetch faq error:', err);
+    }
+  };
+
+  const fetchImages = async () => {
+    try {
+      const res = await api.get(`/api/venues/${venueId}/images`);
+      if (res.data) {
+        setImages(res.data.data || res.data || []);
+      }
+    } catch (err) {
+      console.error('Fetch images error:', err);
     }
   };
 
@@ -198,6 +211,22 @@ const VenueDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {images.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+              <h2 className="text-2xl font-bold mb-4">업장 사진</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {images.map((img) => (
+                  <img
+                    key={img.imageId || img.image_id}
+                    src={`/api/venues/images/${img.imageId || img.image_id}`}
+                    alt="업장 이미지"
+                    className="w-full h-32 object-cover rounded"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-bold mb-4">예약하기</h2>
 
