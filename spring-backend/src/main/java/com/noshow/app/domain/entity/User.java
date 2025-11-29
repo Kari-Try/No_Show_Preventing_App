@@ -9,8 +9,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import com.noshow.app.domain.entity.UserGrade;
-import com.noshow.app.domain.entity.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -75,16 +73,16 @@ public class User {
   @Column(name = "success_count", nullable = false)
   private Integer successCount;
 
-  @Column(name = "tos_version", nullable = false, length = 20)
+  @Column(name = "tos_version", length = 20)
   private String tosVersion;
 
-  @Column(name = "tos_accepted_at", nullable = false)
+  @Column(name = "tos_accepted_at")
   private LocalDateTime tosAcceptedAt;
 
-  @Column(name = "privacy_version", nullable = false, length = 20)
+  @Column(name = "privacy_version", length = 20)
   private String privacyVersion;
 
-  @Column(name = "privacy_accepted_at", nullable = false)
+  @Column(name = "privacy_accepted_at")
   private LocalDateTime privacyAcceptedAt;
 
   @Column(name = "is_active", nullable = false)
