@@ -2,6 +2,7 @@ com\noshow\app\service\ReservationService.class
 com\noshow\app\controller\ReviewImageController.class
 com\noshow\app\dto\VenueDto.class
 com\noshow\app\NoShowApplication.class
+com\noshow\app\service\VenueFaqService.class
 com\noshow\app\domain\repository\PaymentRepository.class
 com\noshow\app\dto\UpdateReservationStatusRequest.class
 com\noshow\app\domain\entity\BusinessHour$BusinessHourBuilder.class
@@ -35,6 +36,7 @@ com\noshow\app\dto\UserDto.class
 com\noshow\app\domain\repository\UserRepository.class
 com\noshow\app\domain\repository\VenueFaqRepository.class
 com\noshow\app\dto\AuthResponse.class
+com\noshow\app\dto\FaqDto$FaqDtoBuilder.class
 com\noshow\app\domain\entity\UserRole$UserRoleBuilder.class
 com\noshow\app\config\WebConfig$1.class
 com\noshow\app\domain\repository\VenueServiceRepository.class
@@ -69,6 +71,7 @@ com\noshow\app\controller\MyPageController.class
 com\noshow\app\domain\entity\User$UserBuilder.class
 com\noshow\app\domain\entity\Venue.class
 com\noshow\app\dto\SignupRequest.class
+com\noshow\app\dto\FaqDto.class
 com\noshow\app\dto\VenueServiceDto.class
 com\noshow\app\controller\ReviewController.class
 com\noshow\app\domain\repository\UserGradeRepository.class
@@ -85,11 +88,14 @@ com\noshow\app\domain\entity\UserRoleId.class
 com\noshow\app\dto\MyPageResponse$MyPageResponseBuilder.class
 com\noshow\app\dto\VenueServiceDto$VenueServiceDtoBuilder.class
 com\noshow\app\common\Pagination.class
+com\noshow\app\dto\CreateFaqRequest.class
 com\noshow\app\domain\entity\VenueService.class
+com\noshow\app\controller\FaqController.class
 com\noshow\app\domain\entity\Payment$Status.class
 com\noshow\app\domain\repository\RoleRepository.class
 com\noshow\app\controller\AuthController.class
 com\noshow\app\domain\entity\UserGrade$UserGradeBuilder.class
+com\noshow\app\controller\OwnerFaqController.class
 com\noshow\app\domain\repository\BusinessHourRepository.class
 com\noshow\app\domain\entity\VenueService$VenueServiceBuilder.class
 com\noshow\app\common\GlobalExceptionHandler.class

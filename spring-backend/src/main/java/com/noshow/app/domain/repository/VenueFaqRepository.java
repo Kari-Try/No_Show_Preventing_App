@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface VenueFaqRepository extends JpaRepository<VenueFaq, Long> {
-  List<VenueFaq> findByVenue_VenueIdAndIsActiveTrue(Long venueId);
+  List<VenueFaq> findByVenue_VenueIdOrderByCreatedAtDesc(Long venueId);
 }

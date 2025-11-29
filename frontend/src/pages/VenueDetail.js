@@ -15,6 +15,7 @@ const VenueDetail = () => {
   const [averageRating, setAverageRating] = useState(null);
   const [businessHours, setBusinessHours] = useState([]);
   const [blocks, setBlocks] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedService, setSelectedService] = useState('');
@@ -28,6 +29,7 @@ const VenueDetail = () => {
     fetchReviews();
     fetchBusinessHours();
     fetchBlocks();
+    fetchFaqs();
   }, [venueId]);
 
   const fetchVenueDetail = async () => {
@@ -83,6 +85,15 @@ const VenueDetail = () => {
       if (res.data.success) setBlocks(res.data.data || []);
     } catch (err) {
       console.error('Fetch blocks error:', err);
+    }
+  };
+
+  const fetchFaqs = async () => {
+    try {
+      const res = await api.get(`/api/faq/venue/${venueId}`);
+      if (res.data.success) setFaqs(res.data.data || []);
+    } catch (err) {
+      console.error('Fetch faq error:', err);
     }
   };
 
@@ -296,6 +307,22 @@ const VenueDetail = () => {
                     <p className="text-xs text-gray-400 mt-2">
                       {new Date(review.created_at).toLocaleDateString()}
                     </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-bold mb-4">FAQ</h2>
+            {faqs.length === 0 ? (
+              <p className="text-gray-500">등록된 FAQ가 없습니다.</p>
+            ) : (
+              <div className="space-y-3">
+                {faqs.map((f) => (
+                  <div key={f.faq_id} className="border-b pb-3">
+                    <p className="font-semibold text-gray-900">{f.question}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap mt-1">{f.answer}</p>
                   </div>
                 ))}
               </div>
