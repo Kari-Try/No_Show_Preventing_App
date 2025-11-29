@@ -13,6 +13,7 @@ import CreateVenue from './pages/CreateVenue';
 import ManageVenue from './pages/ManageVenue';
 import OwnerReservations from './pages/OwnerReservations';
 import MyPage from './pages/MyPage';
+import AdminDashboard from './pages/AdminDashboard';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -57,6 +58,12 @@ function App() {
         <Route path="/venues/create" element={
           <PrivateRoute roles={['owner']}>
             <CreateVenue />
+          </PrivateRoute>
+        } />
+
+        <Route path="/admin" element={
+          <PrivateRoute roles={['admin']}>
+            <AdminDashboard />
           </PrivateRoute>
         } />
         

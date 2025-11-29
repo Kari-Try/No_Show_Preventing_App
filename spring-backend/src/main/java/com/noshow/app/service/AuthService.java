@@ -99,9 +99,11 @@ public class AuthService {
       .build();
 
     userRepository.save(user);
-    assignRole(user, "customer");
+    // 한 계정 = 한 역할 원칙: 요청 userType에 따라 단일 역할 부여
     if ("owner".equalsIgnoreCase(request.getUserType()) || "business".equalsIgnoreCase(request.getUserType())) {
-      assignRole(user, "owner");
+      assignRoleExclusive(user, "owner");
+    } else {
+      assignRoleExclusive(user, "customer");
     }
 
     // load roles into entity for response
@@ -240,13 +242,13 @@ public class AuthService {
           .privacyAcceptedAt(LocalDateTime.now())
           .isActive(true)
           .build();
-        userRepository.save(user);
-        assignRole(user, "customer");
-      } else {
-        // Update linkage/profile info if existing user
-        user.setLoginType(User.LoginType.NAVER);
-        user.setNaverId(naverId);
-        if (profileImage != null) user.setProfileImage(profileImage);
+      userRepository.save(user);
+      assignRoleExclusive(user, "customer");
+    } else {
+      // Update linkage/profile info if existing user
+      user.setLoginType(User.LoginType.NAVER);
+      user.setNaverId(naverId);
+      if (profileImage != null) user.setProfileImage(profileImage);
         if (name != null) user.setRealName(name);
         if (mobile != null) user.setPhone(mobile);
         userRepository.save(user);
@@ -306,16 +308,17 @@ public class AuthService {
     return candidate;
   }
 
-  private void assignRole(User user, String roleName) {
+  /**
+   * 한 계정 = 한 역할 원칙으로, 기존 역할을 모두 제거 후 지정한 역할 하나만 부여한다.
+   */
+  private void assignRoleExclusive(User user, String roleName) {
     Optional<Role> roleOpt = roleRepository.findByRoleName(roleName);
     if (roleOpt.isEmpty()) {
       return;
     }
     Role role = roleOpt.get();
+    userRoleRepository.deleteByUser_UserId(user.getUserId());
     UserRoleId id = new UserRoleId(user.getUserId(), role.getRoleId());
-    if (userRoleRepository.existsById(id)) {
-      return;
-    }
     UserRole userRole = UserRole.builder()
       .id(id)
       .user(user)

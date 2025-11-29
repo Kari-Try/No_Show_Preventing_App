@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
   user_id  VARCHAR(30)       NOT NULL,
   role_id  TINYINT UNSIGNED  NOT NULL,
   PRIMARY KEY (user_id, role_id),
+  UNIQUE KEY uq_user_single_role (user_id),
   CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
@@ -281,9 +282,12 @@ GROUP BY DATE_FORMAT(booked_at, '%Y-%m')
 ORDER BY ym DESC;
 
 CREATE OR REPLACE VIEW v_user_grade_counts AS
-SELECT g.grade_name, COUNT(u.user_id) AS users_in_grade
+SELECT g.grade_name,
+       COUNT(DISTINCT CASE WHEN r.role_name = 'customer' THEN u.user_id END) AS users_in_grade
 FROM user_grades g
 LEFT JOIN users u ON u.grade_id = g.grade_id
+LEFT JOIN user_roles ur ON ur.user_id = u.user_id
+LEFT JOIN roles r ON r.role_id = ur.role_id
 GROUP BY g.grade_id, g.grade_name
 ORDER BY users_in_grade DESC;
 

@@ -16,6 +16,7 @@ const VenueDetail = () => {
   const [businessHours, setBusinessHours] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [faqs, setFaqs] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [selectedService, setSelectedService] = useState('');
@@ -30,6 +31,14 @@ const VenueDetail = () => {
     fetchBusinessHours();
     fetchBlocks();
     fetchFaqs();
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error('user parse error', e);
+      }
+    }
   }, [venueId]);
 
   const fetchVenueDetail = async () => {
@@ -97,7 +106,15 @@ const VenueDetail = () => {
     }
   };
 
+  const roles = currentUser?.roles || [];
+  const isBlocked = roles.includes('owner') || roles.includes('admin');
+
   const handleReservation = async () => {
+    if (isBlocked) {
+      alert('사업자/관리자는 예약할 수 없습니다.');
+      return;
+    }
+
     if (!selectedService || !selectedDate || !selectedTime) {
       alert('모든 정보를 입력해주세요.');
       return;
@@ -185,12 +202,18 @@ const VenueDetail = () => {
             <h2 className="text-2xl font-bold mb-4">예약하기</h2>
 
             <div className="space-y-4">
+              {isBlocked && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 rounded">
+                  사업자/관리자 계정은 예약할 수 없습니다.
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">서비스 선택</label>
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isBlocked}
                 >
                   <option value="">서비스를 선택하세요</option>
                   {services.map((service) => (
@@ -209,6 +232,7 @@ const VenueDetail = () => {
                   onChange={(e) => setSelectedDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isBlocked}
                 />
               </div>
 
@@ -220,6 +244,7 @@ const VenueDetail = () => {
                   onChange={(e) => setSelectedTime(e.target.value)}
                   step="1800"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isBlocked}
                 />
               </div>
 
@@ -232,12 +257,14 @@ const VenueDetail = () => {
                   min="1"
                   max="50"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isBlocked}
                 />
               </div>
 
               <button
                 onClick={handleReservation}
-                className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 font-medium"
+                className={`w-full py-3 rounded-md font-medium ${isBlocked ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                disabled={isBlocked}
               >
                 예약하기
               </button>

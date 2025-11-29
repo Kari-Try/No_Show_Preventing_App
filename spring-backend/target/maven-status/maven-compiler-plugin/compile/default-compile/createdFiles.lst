@@ -5,13 +5,16 @@ com\noshow\app\NoShowApplication.class
 com\noshow\app\service\VenueFaqService.class
 com\noshow\app\domain\repository\PaymentRepository.class
 com\noshow\app\dto\UpdateReservationStatusRequest.class
+com\noshow\app\controller\AdminController.class
 com\noshow\app\domain\entity\BusinessHour$BusinessHourBuilder.class
 com\noshow\app\domain\entity\Reservation$ReservationBuilder.class
 com\noshow\app\dto\MyPageResponse.class
 com\noshow\app\domain\entity\UserGrade.class
 com\noshow\app\domain\entity\AvailabilityBlock.class
 com\noshow\app\domain\entity\SystemSetting$SystemSettingBuilder.class
+com\noshow\app\dto\AdminStatsDto.class
 com\noshow\app\domain\entity\Review.class
+com\noshow\app\dto\MonthlyReservationStatDto.class
 com\noshow\app\dto\CreateAvailabilityBlockRequest.class
 com\noshow\app\dto\CreateBusinessHourRequest.class
 com\noshow\app\dto\CreateVenueServiceRequest.class
@@ -30,6 +33,7 @@ com\noshow\app\dto\VenueDto$VenueDtoBuilder.class
 com\noshow\app\dto\ReviewDto.class
 com\noshow\app\common\ApiResponse.class
 com\noshow\app\domain\entity\Role.class
+com\noshow\app\dto\AdminStatsDto$AdminStatsDtoBuilder.class
 com\noshow\app\dto\DepositPaymentRequest.class
 com\noshow\app\dto\PaymentDto$PaymentDtoBuilder.class
 com\noshow\app\dto\UserDto.class
@@ -50,12 +54,14 @@ com\noshow\app\controller\PaymentController.class
 com\noshow\app\controller\VenueController.class
 com\noshow\app\domain\entity\Reservation$Status.class
 com\noshow\app\controller\VenueServiceController.class
+com\noshow\app\common\PageResult.class
 com\noshow\app\domain\entity\Venue$VenueBuilder.class
 com\noshow\app\domain\entity\Payment.class
 com\noshow\app\dto\CreateReviewRequest.class
 com\noshow\app\domain\entity\AvailabilityBlock$AvailabilityBlockBuilder.class
 com\noshow\app\domain\entity\Review$ReviewBuilder.class
 com\noshow\app\domain\repository\ReviewRepository.class
+com\noshow\app\service\AdminService.class
 com\noshow\app\domain\entity\SystemSetting.class
 com\noshow\app\controller\HealthController.class
 com\noshow\app\domain\entity\UserRole.class
@@ -67,6 +73,7 @@ com\noshow\app\domain\entity\Role$RoleBuilder.class
 com\noshow\app\service\AuthService.class
 com\noshow\app\dto\PaymentDto.class
 com\noshow\app\domain\entity\BusinessHour.class
+com\noshow\app\dto\GradeCountDto.class
 com\noshow\app\controller\MyPageController.class
 com\noshow\app\domain\entity\User$UserBuilder.class
 com\noshow\app\domain\entity\Venue.class
@@ -81,6 +88,7 @@ com\noshow\app\domain\entity\Payment$PaymentType.class
 com\noshow\app\domain\repository\AvailabilityBlockRepository.class
 com\noshow\app\domain\repository\VenueRepository.class
 com\noshow\app\domain\entity\Payment$PaymentBuilder.class
+com\noshow\app\domain\repository\AdminViewRepository.class
 com\noshow\app\domain\entity\User$LoginType.class
 com\noshow\app\domain\repository\UserRoleRepository.class
 com\noshow\app\controller\OwnerReservationController.class

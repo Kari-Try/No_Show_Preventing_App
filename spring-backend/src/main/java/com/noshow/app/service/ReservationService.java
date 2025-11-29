@@ -50,6 +50,18 @@ public class ReservationService {
 
   @Transactional
   public ReservationDto createReservation(CreateReservationRequest request, User customer) {
+    // Only customers can book (owners/admin 차단)
+    if (customer.getUserRoles() != null) {
+      boolean blocked = customer.getUserRoles().stream()
+        .anyMatch(ur -> {
+          String rn = ur.getRole().getRoleName().toLowerCase();
+          return "owner".equals(rn) || "admin".equals(rn);
+        });
+      if (blocked) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "사업자/관리자는 예약할 수 없습니다.");
+      }
+    }
+
     VenueService service = venueServiceRepository.findById(request.getServiceId())
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
 

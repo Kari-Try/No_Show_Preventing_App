@@ -1,5 +1,5 @@
 // frontend/components/Navbar.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -32,11 +32,11 @@ const Navbar = () => {
     }
   };
 
-  const displayName = user?.real_name || user?.name || user?.username || user?.email || '사용자';
+  const displayName = user?.real_name || user?.realName || user?.username || user?.email || '사용자';
   const roleLabel = (() => {
     const roles = user?.roles || [];
-    if (roles.includes('owner')) return '사장';
     if (roles.includes('admin')) return '관리자';
+    if (roles.includes('owner')) return '사장';
     if (roles.includes('customer')) return '손님';
     return '';
   })();
@@ -94,6 +94,14 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
+              {user && user.roles?.includes('admin') && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                >
+                  관리자
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center">
@@ -104,7 +112,8 @@ const Navbar = () => {
                   className="flex items-center space-x-2 text-sm focus:outline-none"
                 >
                   <span className="text-gray-700">
-                    {displayName}님{roleLabel ? ` (${roleLabel})` : ''}
+                    {displayName}
+                    {roleLabel ? ` (${roleLabel})` : ''}
                   </span>
                   <svg
                     className="h-5 w-5 text-gray-400"

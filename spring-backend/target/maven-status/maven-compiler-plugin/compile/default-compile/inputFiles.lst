@@ -1,7 +1,9 @@
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\common\ApiResponse.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\common\GlobalExceptionHandler.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\common\PageResult.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\common\Pagination.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\config\WebConfig.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\controller\AdminController.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\controller\AuthController.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\controller\FaqController.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\controller\HealthController.java
@@ -30,6 +32,7 @@ C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\j
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\entity\Venue.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\entity\VenueFaq.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\entity\VenueService.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\AdminViewRepository.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\AvailabilityBlockRepository.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\BusinessHourRepository.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\PaymentRepository.java
@@ -43,6 +46,7 @@ C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\j
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\VenueFaqRepository.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\VenueRepository.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\domain\repository\VenueServiceRepository.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\AdminStatsDto.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\AuthResponse.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\CancelReservationRequest.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\CreateAvailabilityBlockRequest.java
@@ -54,7 +58,9 @@ C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\j
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\CreateVenueServiceRequest.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\DepositPaymentRequest.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\FaqDto.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\GradeCountDto.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\LoginRequest.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\MonthlyReservationStatDto.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\MyPageResponse.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\PaymentDto.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\ReservationDto.java
@@ -66,6 +72,7 @@ C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\j
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\dto\VenueServiceDto.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\NoShowApplication.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\security\TokenService.java
+C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\service\AdminService.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\service\AuthService.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\service\ReservationService.java
 C:\Users\hyeon\Documents\GitHub\No_Show_Preventing_App\spring-backend\src\main\java\com\noshow\app\service\ReviewService.java
