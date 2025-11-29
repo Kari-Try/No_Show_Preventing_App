@@ -70,10 +70,10 @@ CREATE TABLE IF NOT EXISTS users (
   grade_id            SMALLINT UNSIGNED NULL,
   no_show_count       INT UNSIGNED NOT NULL DEFAULT 0,
   success_count       INT UNSIGNED NOT NULL DEFAULT 0,
-  tos_version         VARCHAR(20)  NOT NULL,
-  tos_accepted_at     DATETIME     NOT NULL,
-  privacy_version     VARCHAR(20)  NOT NULL,
-  privacy_accepted_at DATETIME     NOT NULL,
+  tos_version         VARCHAR(20)  NULL,
+  tos_accepted_at     DATETIME     NULL,
+  privacy_version     VARCHAR(20)  NULL,
+  privacy_accepted_at DATETIME     NULL,
   is_active           BOOLEAN      NOT NULL DEFAULT TRUE,
   created_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -140,6 +140,16 @@ CREATE TABLE IF NOT EXISTS venue_services (
   CONSTRAINT ck_vs_deposit CHECK (deposit_rate_percent IS NULL OR deposit_rate_percent BETWEEN 0 AND 100),
   CONSTRAINT fk_vs_venue FOREIGN KEY (venue_id) REFERENCES venues(venue_id)
     ON UPDATE RESTRICT ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS venue_images (
+  image_id     BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  venue_id     BIGINT UNSIGNED NOT NULL,
+  image_data   LONGBLOB NOT NULL,
+  mime_type    VARCHAR(100) NOT NULL,
+  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vi_venue FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  KEY ix_vi_venue (venue_id, created_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS business_hours (

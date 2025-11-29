@@ -7,6 +7,9 @@ const API_URL = 'http://localhost:8000';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState('terms');
+  const [termsChecked, setTermsChecked] = useState(false);
+
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -53,9 +56,8 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-    
+
     setLoading(true);
     setError('');
 
@@ -70,7 +72,7 @@ const Signup = () => {
       }, {
         withCredentials: true
       });
-      
+
       if (response.data.success) {
         alert('회원가입이 완료되었습니다.');
         navigate('/login');
@@ -93,9 +95,54 @@ const Signup = () => {
         window.location.href = redirectUrl || '/login';
       }
     } catch (err) {
-      setError('네이버 로그인 연결에 실패했습니다.');
+      setError('네이버 로그인에 실패했습니다.');
     }
   };
+
+  if (step === 'terms') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12">
+        <div className="max-w-lg w-full space-y-6 p-8 bg-white rounded-lg shadow">
+          <h2 className="text-2xl font-bold text-gray-900 text-center">이용약관 동의</h2>
+          <div className="h-60 overflow-y-auto border rounded p-3 text-sm text-gray-700 space-y-3 bg-gray-50">
+            <div>
+              <h3 className="font-semibold mb-1">서비스 이용약관</h3>
+              <p>보증금 기반 노쇼 방지 예약 플랫폼의 이용 조건, 책임, 제한 등에 대해 설명합니다.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-1">개인정보 처리방침</h3>
+              <p>예약 및 회원 관리 목적으로 이름, 전화번호, 이메일(선택)을 수집하며, 목적 달성 후 안전하게 보관·파기합니다.</p>
+            </div>
+          </div>
+          <label className="flex items-center space-x-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={termsChecked}
+              onChange={(e) => setTermsChecked(e.target.checked)}
+            />
+            <span>위 약관 및 개인정보 처리방침을 확인하고 동의합니다.</span>
+          </label>
+          <button
+            onClick={() => {
+              if (!termsChecked) {
+                setError('약관 동의가 필요합니다.');
+                return;
+              }
+              setError('');
+              setStep('form');
+            }}
+            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+          >
+            동의하고 계속
+          </button>
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>}
+          <div className="text-center">
+            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-500">이미 계정이 있으신가요?</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12">
@@ -176,7 +223,7 @@ const Signup = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                이메일 (선택)
+                이메일(선택)
               </label>
               <input
                 id="email"
@@ -264,7 +311,7 @@ const Signup = () => {
               <svg className="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M13.5 10l-3.5-6h-3.5v12h3.5v-6l3.5 6h3.5v-12h-3.5z"/>
               </svg>
-              네이버로 가입하기
+              네이버로 가입
             </button>
           </div>
 
