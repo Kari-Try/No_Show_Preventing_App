@@ -41,25 +41,32 @@ const Navbar = () => {
     return '';
   })();
 
+  const getRoleBadgeClasses = (role) => {
+    if (role === '관리자') return 'bg-red-100 text-red-700';
+    if (role === '사장') return 'bg-green-100 text-green-700';
+    return 'bg-blue-100 text-blue-700';
+  };
+
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white **border-b border-gray-200**"> {/* shadow-lg -> border-b 변경 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-blue-600">노쇼방지</span>
+              <span className="**text-2xl font-extrabold text-blue-700 tracking-tight**">노쇼방지</span>
             </Link>
-            <div className="hidden md:ml-6 md:flex md:space-x-8">
+            <div className="hidden md:ml-10 md:flex md:space-x-4"> {/* ml-6 -> ml-10, space-x-8 -> space-x-4로 간격 조정 */}
+              {/* 메인 네비게이션 링크 스타일 통일 및 강조 */}
               <Link
                 to="/venues"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
               >
                 업장 목록
               </Link>
               {user && user.roles?.includes('customer') && (
                 <Link
                   to="/mypage"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                 >
                   마이페이지
                 </Link>
@@ -67,28 +74,29 @@ const Navbar = () => {
               {user && user.roles?.includes('customer') && !user.roles?.includes('owner') && (
                 <Link
                   to="/my-reservations"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                 >
                   내 예약
                 </Link>
               )}
+              {/* 사장님 메뉴 */}
               {user && user.roles?.includes('owner') && (
                 <>
                   <Link
                     to="/my-venues"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                    className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                   >
                     내 업장
                   </Link>
                   <Link
                     to="/venues/create"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                    className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                   >
                     업장 등록
                   </Link>
                   <Link
                     to="/owner/reservations"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                    className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                   >
                     예약 관리
                   </Link>
@@ -97,7 +105,7 @@ const Navbar = () => {
               {user && user.roles?.includes('admin') && (
                 <Link
                   to="/admin"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  className="inline-flex items-center px-1 pt-1 **text-base font-semibold** text-gray-700 **hover:border-b-2 hover:border-blue-600** hover:text-blue-600 transition duration-150 ease-in-out"
                 >
                   관리자
                 </Link>
@@ -109,11 +117,21 @@ const Navbar = () => {
               <div className="relative">
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 text-sm focus:outline-none"
+                  className="flex items-center space-x-2 text-sm focus:outline-none **p-2 rounded-lg hover:bg-gray-50**"
                 >
-                  <span className="text-gray-700">
-                    {displayName}
-                    {roleLabel ? ` (${roleLabel})` : ''}
+                  {/* 사용자 이름 및 역할 뱃지 강조 */}
+                  <span className="flex items-center space-x-2 text-sm font-medium">
+                    <span className="text-gray-900 font-semibold">{displayName}</span>
+                    {roleLabel && (
+                      <span 
+                        className={`
+                          px-2 py-0.5 rounded-full text-xs font-bold 
+                          ${getRoleBadgeClasses(roleLabel)}
+                        `}
+                      >
+                        {roleLabel}
+                      </span>
+                    )}
                   </span>
                   <svg
                     className="h-5 w-5 text-gray-400"
@@ -128,10 +146,10 @@ const Navbar = () => {
                   </svg>
                 </button>
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg **shadow-xl ring-1 ring-black ring-opacity-5** py-1 z-10">
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 **hover:bg-blue-50 hover:text-blue-700**"
                     >
                       로그아웃
                     </button>
@@ -139,16 +157,16 @@ const Navbar = () => {
                 )}
               </div>
             ) : (
-              <div className="flex space-x-4">
+              <div className="flex space-x-3"> {/* space-x-4 -> space-x-3 조정 */}
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium **rounded-md hover:bg-gray-50**"
                 >
                   로그인
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium"
+                  className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 **rounded-lg** text-sm font-semibold **shadow-md** transition duration-150 ease-in-out"
                 >
                   회원가입
                 </Link>

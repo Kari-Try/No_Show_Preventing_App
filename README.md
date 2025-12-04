@@ -35,6 +35,10 @@ mvn spring-boot:run
 ```
 기동 시 `schema.sql`이 자동 실행되어 빈 DB를 초기화합니다. 스키마를 수정했다면 `mvn clean package`로 `target/classes/schema.sql`을 갱신하세요.
 
+## 추가 모듈 설치
+npm install swiper
+npm install --save kakao-maps-sdk
+
 ## 프런트 실행
 ```
 cd frontend

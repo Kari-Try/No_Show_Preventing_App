@@ -18,16 +18,16 @@ const VenueList = () => {
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/venues', {
-        params: { page, limit: 9, search }
+      const res = await api.get('/api/venues', {
+        params: { page, limit: 9, search },
       });
-      
-      if (response.data.success) {
-        setVenues(response.data.data);
-        setPagination(response.data.pagination);
+
+      if (res.data.success) {
+        setVenues(res.data.data);
+        setPagination(res.data.pagination);
       }
-    } catch (error) {
-      console.error('Fetch venues error:', error);
+    } catch (err) {
+      console.error('Fetch venues error:', err);
     } finally {
       setLoading(false);
     }
@@ -42,62 +42,76 @@ const VenueList = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Header */}
+        <div className="mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">업장 목록</h1>
-          <form onSubmit={handleSearch} className="flex gap-2">
+
+          {/* 검색창 */}
+          <form onSubmit={handleSearch} className="flex gap-3">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="업장명 검색"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="업장명을 입력하세요"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-sm"
             >
               검색
             </button>
           </form>
         </div>
 
+        {/* 로딩 */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-300 border-t-indigo-600"></div>
           </div>
         ) : venues.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">등록된 업장이 없습니다.</p>
+          <div className="text-center py-20">
+            <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 카드 리스트 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
               {venues.map((venue) => (
                 <Link
                   key={venue.venue_id}
                   to={`/venues/${venue.venue_id}`}
-                  className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-xl shadow hover:shadow-lg hover:-translate-y-1 transform transition-all border border-gray-100"
                 >
                   <div className="p-6">
+                    {/* 업장명 */}
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                       {venue.venue_name}
                     </h3>
+
+                    {/* 설명 */}
                     <p className="text-gray-600 mb-4 line-clamp-2">
                       {venue.description || '설명이 없습니다.'}
                     </p>
-                    <div className="flex justify-between items-center">
+
+                    {/* 주소 + 가격 */}
+                    <div className="flex justify-between items-center mb-3">
                       <span className="text-sm text-gray-500">
                         {venue.address || '주소 정보 없음'}
                       </span>
+
                       {venue.base_price && (
-                        <span className="text-lg font-bold text-blue-600">
+                        <span className="text-lg font-bold text-indigo-600">
                           {venue.base_price.toLocaleString()}원~
                         </span>
                       )}
                     </div>
-                    {venue.services && venue.services.length > 0 && (
-                      <div className="mt-4 pt-4 border-t">
+
+                    {/* 제공 서비스 수 */}
+                    {venue.services?.length > 0 && (
+                      <div className="pt-3 border-t border-gray-200">
                         <p className="text-sm text-gray-500">
                           {venue.services.length}개의 서비스 제공
                         </p>
@@ -108,22 +122,25 @@ const VenueList = () => {
               ))}
             </div>
 
+            {/* 페이지네이션 */}
             {pagination.totalPages > 1 && (
-              <div className="mt-8 flex justify-center space-x-2">
+              <div className="mt-10 flex justify-center items-center gap-3">
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   이전
                 </button>
-                <span className="px-4 py-2">
+
+                <span className="px-4 py-2 text-gray-700 font-medium">
                   {page} / {pagination.totalPages}
                 </span>
+
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page === pagination.totalPages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-4 py-2 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   다음
                 </button>
