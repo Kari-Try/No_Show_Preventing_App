@@ -1,39 +1,32 @@
 // frontend/components/PrivateRoute.js
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import api from '../utils/api';
 
 const PrivateRoute = ({ children, roles }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRoles, setUserRoles] = useState([]);
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setIsAuthenticated(false);
-        return;
-      }
-
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr) {
       try {
-        const response = await api.get('/auth/verify');
-        if (response.data.success) {
-          setIsAuthenticated(true);
-          setUserRoles(response.data.user.roles || []);
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.error('Auth verification failed:', error);
+        const user = JSON.parse(userStr);
+        setIsAuthenticated(true);
+        setUserRoles(user.roles || []);
+      } catch {
         setIsAuthenticated(false);
+        setUserRoles([]);
       }
-    };
-
-    verifyAuth();
+    } else {
+      setIsAuthenticated(false);
+      setUserRoles([]);
+    }
+    setIsReady(true);
   }, []);
 
-  if (isAuthenticated === null) {
+  if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

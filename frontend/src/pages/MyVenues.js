@@ -1,8 +1,54 @@
-// frontend/src/pages/MyVenues.js
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import api from '../utils/api';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import api from "../utils/api";
+
+const VenueCard = ({ venue, onDelete }) => {
+  return (
+    <div className="bg-white rounded-2xl shadow-[0_4px_16px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] transition-all duration-200">
+      <div className="p-7">
+        <h3 className="text-[20px] font-bold text-gray-900 tracking-tight mb-1">
+          {venue.venue_name}
+        </h3>
+
+        <p className="text-[15px] text-gray-600 leading-relaxed line-clamp-2 mb-3">
+          {venue.description || "설명이 없습니다."}
+        </p>
+
+        <div className="flex items-center text-[14px] text-gray-500 mb-5">
+          보증금 비율:&nbsp;
+          <span className="font-semibold text-gray-800">
+            {venue.default_deposit_rate_percent}%
+          </span>
+        </div>
+
+        {venue.services && venue.services.length > 0 && (
+          <div className="pt-4 border-t border-gray-200 mb-5">
+            <p className="text-[14px] text-gray-500">
+              {venue.services.length}개의 서비스 등록됨
+            </p>
+          </div>
+        )}
+
+        {/* 버튼 그룹 */}
+        <div className="flex gap-3">
+          <Link
+            to={`/owner/venues/${venue.venue_id}/manage`}
+            className="flex-1 text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+          >
+            관리
+          </Link>
+          <button
+            onClick={() => onDelete(venue)}
+            className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition"
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MyVenues = () => {
   const navigate = useNavigate();
@@ -18,22 +64,22 @@ const MyVenues = () => {
   const fetchMyVenues = async () => {
     try {
       setLoading(true);
-      const user = JSON.parse(localStorage.getItem('user'));
-      
-      const response = await api.get('/api/venues', {
-        params: { page: 1, limit: 100 }
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      const response = await api.get("/api/venues", {
+        params: { page: 1, limit: 100 },
       });
-      
+
       if (response.data.success) {
         const myVenues = response.data.data.filter(
-          venue => venue.owner_user_id === user.user_id
+          (venue) => venue.owner_user_id === user.user_id
         );
         setVenues(myVenues);
       }
     } catch (error) {
-      console.error('Fetch my venues error:', error);
+      console.error("Fetch my venues error:", error);
       if (error.response?.status === 401) {
-        navigate('/login');
+        navigate("/login");
       }
     } finally {
       setLoading(false);
@@ -42,121 +88,95 @@ const MyVenues = () => {
 
   const handleDeleteVenue = async () => {
     try {
-      const response = await api.delete(`/api/venues/${selectedVenue.venue_id}`);
-      
-      if (response.data.success) {
-        alert('업장이 삭제되었습니다.');
+      const res = await api.delete(
+        `/api/venues/${selectedVenue.venue_id}`
+      );
+
+      if (res.data.success) {
         setShowDeleteModal(false);
         setSelectedVenue(null);
         fetchMyVenues();
       }
     } catch (error) {
-      console.error('Delete venue error:', error);
-      alert(error.response?.data?.message || '업장 삭제에 실패했습니다.');
+      alert(error.response?.data?.message || "업장 삭제 실패");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f6f7fb]">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">내 업장</h1>
+
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* 상단 헤더 */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+            내 업장
+          </h1>
           <Link
             to="/venues/create"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
           >
-            업장 등록
+            + 업장 등록
           </Link>
         </div>
 
+        {/* 로딩 */}
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex justify-center py-20">
+            <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-blue-600"></div>
           </div>
         ) : venues.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500 mb-4">등록된 업장이 없습니다.</p>
+          <div className="text-center py-16 bg-white rounded-2xl shadow-[0_4px_16px_rgba(0,0,0,0.05)] border border-gray-100">
+            <p className="text-gray-500 text-lg mb-6">
+              등록된 업장이 없습니다.
+            </p>
             <Link
               to="/venues/create"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
             >
               업장 등록하기
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          // 카드 리스트
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
             {venues.map((venue) => (
-              <div
+              <VenueCard
                 key={venue.venue_id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-              >
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {venue.venue_name}
-                  </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {venue.description || '설명이 없습니다.'}
-                  </p>
-                  <div className="mb-4">
-                    <span className="text-sm text-gray-500">보증금 비율: </span>
-                    <span className="text-sm font-medium">
-                      {venue.default_deposit_rate_percent}%
-                    </span>
-                  </div>
-                  {venue.services && venue.services.length > 0 && (
-                    <div className="mb-4 pt-4 border-t">
-                      <p className="text-sm text-gray-500">
-                        {venue.services.length}개의 서비스
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/venues/${venue.venue_id}`}
-                      className="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      상세보기
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setSelectedVenue(venue);
-                        setShowDeleteModal(true);
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-              </div>
+                venue={venue}
+                onDelete={(v) => {
+                  setSelectedVenue(v);
+                  setShowDeleteModal(true);
+                }}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* 삭제 확인 모달 */}
+      {/* 삭제 모달 */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">업장 삭제</h3>
-            <p className="text-gray-600 mb-4">
-              "{selectedVenue?.venue_name}" 업장을 삭제하시겠습니까?
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white p-7 rounded-xl shadow-lg w-full max-w-md border border-gray-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              업장 삭제
+            </h3>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              "{selectedVenue?.venue_name}" 업장을 삭제하시겠습니까?  
+              <br />
               이 작업은 되돌릴 수 없습니다.
             </p>
-            <div className="flex justify-end space-x-2">
+
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setSelectedVenue(null);
-                }}
-                className="px-4 py-2 border rounded-md hover:bg-gray-50"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-lg border hover:bg-gray-50 transition"
               >
                 취소
               </button>
               <button
                 onClick={handleDeleteVenue}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
               >
                 삭제
               </button>
