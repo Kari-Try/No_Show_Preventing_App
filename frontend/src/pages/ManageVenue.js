@@ -202,24 +202,35 @@ const ManageVenue = () => {
       setError("FAQ 등록 실패");
     }
   };
+  
+const handleImageUpload = async (e) => {
+  e.preventDefault();
+  if (!imageFile) return;
+  setError('');
+  setSuccess('');
+  try {
+    const form = new FormData();
+    form.append('image', imageFile);
+    await api.post(`/api/owner/venues/${venueId}/images`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    setSuccess('이미지를 업로드했습니다.');
+    fetchImages();
+  } catch (err) {
+    setError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
+  }
+};
 
-  const handleImageUpload = async (e) => {
-    e.preventDefault();
-    if (!imageFile) return;
+  const handleDeleteImage = async (imageId) => {
+    if (!imageId) return;
+    setError('');
+    setSuccess('');
     try {
-      const form = new FormData();
-      form.append("image", imageFile);
-
-      const res = await api.post(
-        `/api/owner/venues/${venueId}/images`,
-        form
-      );
-      if (res.data.success) {
-        setSuccess("이미지 업로드 완료");
-        fetchImages();
-      }
-    } catch {
-      setError("이미지 업로드 실패");
+      await api.delete(`/api/owner/venues/images/${imageId}`);
+      setSuccess('이미지를 삭제했습니다.');
+      fetchImages();
+    } catch (err) {
+      setError(err.response?.data?.message || '이미지 삭제에 실패했습니다.');
     }
   };
 
@@ -794,7 +805,10 @@ const ManageVenue = () => {
                         className="w-full h-24 rounded object-cover"
                         alt="업장 이미지"
                       />
-                      <button className="w-full mt-2 bg-red-600 text-white text-sm py-1 rounded hover:bg-red-700">
+                      <button
+                        onClick={() => handleDeleteImage(img.imageId || img.image_id)}
+                        className="w-full mt-2 bg-red-600 text-white text-sm py-1 rounded hover:bg-red-700"
+                      >
                         삭제
                       </button>
                     </div>
