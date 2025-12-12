@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../utils/api";
@@ -9,6 +9,12 @@ const ManageVenue = () => {
   const { venueId } = useParams();
   const navigate = useNavigate();
 
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  };
+
   // STATE -------------------------------
   const [venue, setVenue] = useState(null);
   const [services, setServices] = useState([]);
@@ -16,6 +22,8 @@ const ManageVenue = () => {
   const [blocks, setBlocks] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [images, setImages] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [replyValues, setReplyValues] = useState({});
 
   const [serviceForm, setServiceForm] = useState({
     service_name: "",
@@ -61,9 +69,10 @@ const ManageVenue = () => {
     fetchBlocks();
     fetchFaqs();
     fetchImages();
+    fetchReviews();
   }, [venueId]);
 
-  const fetchVenue = async () => {
+   const fetchVenue = async () => {
     try {
       const res = await api.get(`/api/venues/${venueId}`);
       if (res.data.success) setVenue(res.data.data);
@@ -106,6 +115,13 @@ const ManageVenue = () => {
     try {
       const res = await api.get(`/api/owner/venues/${venueId}/images`);
       if (res.data.success) setImages(res.data.data || res.data || []);
+    } catch {}
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await api.get(`/api/reviews/venue/${venueId}`);
+      if (res.data.success) setReviews(res.data.data || []);
     } catch {}
   };
 
@@ -207,6 +223,28 @@ const ManageVenue = () => {
     }
   };
 
+  const handleReplySubmit = async (reviewId) => {
+    const reply = replyValues[reviewId];
+    if (!reply || reply.trim() === "") return;
+    setError("");
+    setSuccess("");
+    try {
+      const res = await api.post(
+        `/api/owner/reviews/${reviewId}/reply`,
+        { reply }
+      );
+      if (res.data.success) {
+        setSuccess("사장 댓글이 등록되었습니다.");
+        setReplyValues((prev) => ({ ...prev, [reviewId]: "" }));
+        fetchReviews();
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "사장 댓글 등록에 실패했습니다."
+      );
+    }
+  };
+
   // UI COMPONENTS -------------------------------
   const TabButton = ({ id, label }) => (
     <button
@@ -268,6 +306,7 @@ const ManageVenue = () => {
           <TabButton id="hours" label="영업시간" />
           <TabButton id="blocks" label="예약 불가" />
           <TabButton id="faq" label="FAQ" />
+          <TabButton id="reviews" label="리뷰" />
           <TabButton id="images" label="이미지" />
         </div>
 
@@ -644,6 +683,72 @@ const ManageVenue = () => {
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* ======================================================
+        =============== REVIEWS TAB =============================
+        ======================================================= */}
+        {activeTab === "reviews" && (
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold">리뷰 관리</h3>
+            {reviews.length === 0 ? (
+              <p className="text-gray-500">등록된 리뷰가 없습니다.</p>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((r) => {
+                  const rid = r.reviewId ?? r.review_id;
+                  const ownerReply = r.ownerReply ?? r.owner_reply;
+                  return (
+                    <div key={rid || `review-${Math.random()}`} className="border rounded p-4 bg-white">
+                      <div className="flex justify-between items-center mb-2">
+                        <div>
+                          <p className="font-semibold">
+                            {r.user?.real_name || r.user?.username || "손님"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            평점 {r.rating} / 5 · {formatDate(r.created_at || r.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-gray-800 whitespace-pre-wrap mb-3">
+                        {r.content}
+                      </p>
+                      {ownerReply && (
+                        <div className="bg-gray-50 border rounded p-3 mb-3 text-sm">
+                          <p className="font-semibold text-gray-700">사장 댓글</p>
+                          <p className="text-gray-800 whitespace-pre-wrap">
+                            {ownerReply}
+                          </p>
+                        </div>
+                      )}
+                      {!ownerReply && (
+                        <div className="space-y-2">
+                          <textarea
+                            className="w-full border rounded px-3 py-2"
+                            placeholder="사장 댓글을 입력하세요"
+                            rows={2}
+                            value={replyValues[rid] || ""}
+                            onChange={(e) =>
+                              setReplyValues((prev) => ({
+                                ...prev,
+                                [rid]: e.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            onClick={() => handleReplySubmit(rid)}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          >
+                            댓글 등록
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

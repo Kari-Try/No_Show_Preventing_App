@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,11 +36,15 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
+  private static final Duration DEPOSIT_TIMEOUT = Duration.ofMinutes(10);
+  private static final String DEPOSIT_TIMEOUT_REASON = "Deposit payment window expired";
+
   private final ReservationRepository reservationRepository;
   private final VenueServiceRepository venueServiceRepository;
   private final UserGradeRepository userGradeRepository;
@@ -209,6 +214,9 @@ public class ReservationService {
     reservation.setCanceledAt(now);
     reservation.setCanceledBy(user);
 
+    // 환불 처리 (보증금 결제된 경우)
+    refundDepositIfExists(reservation, user);
+
     reservationRepository.save(reservation);
     return ReservationDto.fromEntity(reservation, true);
   }
@@ -223,16 +231,19 @@ public class ReservationService {
     }
 
     if (reservation.getStatus() == Reservation.Status.DEPOSIT_PENDING) {
-      LocalDateTime expiry = reservation.getCreatedAt() != null ? reservation.getCreatedAt().plusMinutes(10) : LocalDateTime.now();
+      LocalDateTime base = reservation.getCreatedAt() != null ? reservation.getCreatedAt() : LocalDateTime.now();
+      LocalDateTime expiry = base.plus(DEPOSIT_TIMEOUT);
       if (LocalDateTime.now().isAfter(expiry)) {
-        reservation.setStatus(Reservation.Status.DEPOSIT_FAILED);
+        reservation.setStatus(Reservation.Status.CANCELED);
+        reservation.setCanceledAt(LocalDateTime.now());
+        reservation.setCancelReason(DEPOSIT_TIMEOUT_REASON);
         reservationRepository.save(reservation);
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 시간이 만료되었습니다.");
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "??? ?? ??? ???????.");
       }
     }
 
     if (reservation.getStatus() != Reservation.Status.DEPOSIT_PENDING) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 대기 상태가 아닙니다.");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "??? ?? ??? ????.");
     }
 
     Payment payment = Payment.builder()
@@ -268,6 +279,7 @@ public class ReservationService {
       reservation.setCancelReason(reason);
       reservation.setCanceledAt(LocalDateTime.now());
       reservation.setCanceledBy(owner);
+      refundDepositIfExists(reservation, owner);
     } else if ("COMPLETE".equalsIgnoreCase(action) || "COMPLETED".equalsIgnoreCase(action)) {
       reservation.setStatus(Reservation.Status.COMPLETED);
     } else {
@@ -278,5 +290,51 @@ public class ReservationService {
     return ReservationDto.fromEntity(reservation, true);
   }
 
+  @Transactional
+  @Scheduled(fixedDelayString = "${app.deposit-expire-scan-ms:60000}")
+  public void expireStaleDepositPending() {
+    LocalDateTime cutoff = LocalDateTime.now().minus(DEPOSIT_TIMEOUT);
+    List<Reservation> expired = reservationRepository.findByStatusAndCreatedAtBefore(
+      Reservation.Status.DEPOSIT_PENDING, cutoff);
+    if (expired.isEmpty()) {
+      return;
+    }
+    LocalDateTime now = LocalDateTime.now();
+    expired.forEach(r -> {
+      r.setStatus(Reservation.Status.CANCELED);
+      r.setCanceledAt(now);
+      r.setCancelReason(DEPOSIT_TIMEOUT_REASON);
+    });
+    reservationRepository.saveAll(expired);
+  }
+
   public record ReservationsPage(List<ReservationDto> data, Pagination pagination) {}
+
+  /**
+   * 이미 결제된 보증금이 있으면 REFUND 레코드를 추가한다.
+   */
+  private void refundDepositIfExists(Reservation reservation, User actor) {
+    if (reservation.getDepositAmount() == null || reservation.getDepositAmount().compareTo(BigDecimal.ZERO) <= 0) {
+      return;
+    }
+    Payment deposit = reservation.getPayments() == null ? null :
+      reservation.getPayments().stream()
+        .filter(p -> p.getPaymentType() == Payment.PaymentType.DEPOSIT && p.getStatus() == Payment.Status.CAPTURED)
+        .max(Comparator.comparing(Payment::getPaidAt, Comparator.nullsLast(Comparator.naturalOrder())))
+        .orElse(null);
+    if (deposit == null) return;
+
+    Payment refund = Payment.builder()
+      .reservation(reservation)
+      .payer(actor != null ? actor : reservation.getCustomer())
+      .paymentType(Payment.PaymentType.REFUND)
+      .method(deposit.getMethod())
+      .amount(reservation.getDepositAmount())
+      .currency(reservation.getCurrency())
+      .status(Payment.Status.CAPTURED)
+      .relatedPayment(deposit)
+      .paidAt(LocalDateTime.now())
+      .build();
+    paymentRepository.save(refund);
+  }
 }

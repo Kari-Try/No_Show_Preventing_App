@@ -32,9 +32,6 @@ public class UserGrade {
   @Column(name = "deposit_discount_percent", nullable = false)
   private Double depositDiscountPercent;
 
-  @Column(name = "min_success_reservations", nullable = false)
-  private Integer minSuccessReservations;
-
   @Column(name = "priority", nullable = false)
   private Integer priority;
 

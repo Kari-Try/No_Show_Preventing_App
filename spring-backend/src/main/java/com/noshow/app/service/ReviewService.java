@@ -3,7 +3,9 @@ package com.noshow.app.service;
 import com.noshow.app.domain.entity.Reservation;
 import com.noshow.app.domain.entity.Review;
 import com.noshow.app.domain.entity.User;
+import com.noshow.app.domain.entity.Venue;
 import com.noshow.app.domain.repository.ReservationRepository;
+import com.noshow.app.domain.repository.VenueRepository;
 import com.noshow.app.domain.repository.ReviewRepository;
 import com.noshow.app.dto.CreateReviewRequest;
 import com.noshow.app.dto.ReviewDto;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ReviewService {
   private final ReviewRepository reviewRepository;
   private final ReservationRepository reservationRepository;
+  private final VenueRepository venueRepository;
 
   @Transactional(readOnly = true)
   public List<ReviewDto> reviewsByVenue(Long venueId) {
@@ -73,5 +76,25 @@ public class ReviewService {
         return dto;
       })
       .collect(Collectors.toList());
+  }
+
+  @Transactional
+  public ReviewDto ownerReply(Long reviewId, String reply, User owner) {
+    Review review = reviewRepository.findById(reviewId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found"));
+    if (review.getVenue() == null || review.getVenue().getVenueId() == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Review without venue cannot be replied");
+    }
+    Venue venue = venueRepository.findById(review.getVenue().getVenueId())
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venue not found"));
+    if (!venue.getOwner().getUserId().equals(owner.getUserId())) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only venue owner can reply");
+    }
+    review.setOwnerReply(reply);
+    review.setOwnerReplyAt(java.time.LocalDateTime.now());
+    reviewRepository.save(review);
+    ReviewDto dto = ReviewDto.fromEntity(review);
+    dto.setHasImage(review.getImageData() != null);
+    return dto;
   }
 }

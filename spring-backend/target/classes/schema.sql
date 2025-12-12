@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS user_grades (
   grade_name                VARCHAR(30) NOT NULL UNIQUE,
   grade_code                VARCHAR(32) UNIQUE,
   deposit_discount_percent  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-  min_success_reservations  INT UNSIGNED NOT NULL DEFAULT 0,
   priority                  SMALLINT UNSIGNED NOT NULL DEFAULT 100,
   is_default                BOOLEAN NOT NULL DEFAULT FALSE,
   require_no_show_zero      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -43,12 +42,12 @@ CREATE TABLE IF NOT EXISTS user_grades (
 ) ENGINE=InnoDB;
 
 INSERT INTO user_grades
-  (grade_name, grade_code, deposit_discount_percent, min_success_reservations, priority, is_default, require_no_show_zero, max_no_show_rate)
+  (grade_name, grade_code, deposit_discount_percent, priority, is_default, require_no_show_zero, max_no_show_rate)
 VALUES
-  ('ELITE','ELITE',      20.00, 0, 1, FALSE, TRUE,  NULL ),
-  ('EXCELLENT','EXCELLENT',  10.00, 0, 2, FALSE, FALSE, 0.050),
-  ('STANDARD','STANDARD',    0.00, 0, 3, TRUE,  FALSE, 0.200),
-  ('POOR','POOR',        0.00, 0, 4, FALSE, FALSE, NULL )
+  ('ELITE','ELITE',      20.00, 1, FALSE, TRUE,  NULL ),
+  ('EXCELLENT','EXCELLENT',  10.00, 2, FALSE, FALSE, 0.050),
+  ('STANDARD','STANDARD',    0.00, 3, TRUE,  FALSE, 0.200),
+  ('POOR','POOR',        0.00, 4, FALSE, FALSE, NULL )
 ON DUPLICATE KEY UPDATE
   deposit_discount_percent = VALUES(deposit_discount_percent),
   priority                 = VALUES(priority),
@@ -139,7 +138,7 @@ CREATE TABLE IF NOT EXISTS venue_services (
   UNIQUE KEY uq_venue_service (venue_id, service_name),
   CONSTRAINT ck_vs_deposit CHECK (deposit_rate_percent IS NULL OR deposit_rate_percent BETWEEN 0 AND 100),
   CONSTRAINT fk_vs_venue FOREIGN KEY (venue_id) REFERENCES venues(venue_id)
-    ON UPDATE RESTRICT ON DELETE RESTRICT
+    ON UPDATE RESTRICT ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS venue_images (
@@ -180,8 +179,8 @@ CREATE TABLE IF NOT EXISTS availability_blocks (
 CREATE TABLE IF NOT EXISTS reservations (
   reservation_id                   BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   customer_user_id                 VARCHAR(30) NOT NULL,
-  venue_id                         BIGINT UNSIGNED NOT NULL,
-  service_id                       BIGINT UNSIGNED NOT NULL,
+  venue_id                         BIGINT UNSIGNED NULL,
+  service_id                       BIGINT UNSIGNED NULL,
   party_size                       SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   scheduled_start                  DATETIME NOT NULL,
   scheduled_end                    DATETIME NOT NULL,
@@ -207,8 +206,8 @@ CREATE TABLE IF NOT EXISTS reservations (
                                     AND applied_grade_discount_percent BETWEEN 0 AND 100
                                     AND deposit_amount >= 0),
   CONSTRAINT fk_resv_customer FOREIGN KEY (customer_user_id) REFERENCES users(user_id),
-  CONSTRAINT fk_resv_venue    FOREIGN KEY (venue_id) REFERENCES venues(venue_id),
-  CONSTRAINT fk_resv_service  FOREIGN KEY (service_id) REFERENCES venue_services(service_id),
+  CONSTRAINT fk_resv_venue    FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE SET NULL,
+  CONSTRAINT fk_resv_service  FOREIGN KEY (service_id) REFERENCES venue_services(service_id) ON DELETE SET NULL,
   CONSTRAINT fk_resv_canceler FOREIGN KEY (canceled_by_user_id) REFERENCES users(user_id),
   CONSTRAINT fk_resv_grade    FOREIGN KEY (applied_grade_id) REFERENCES user_grades(grade_id)
 ) ENGINE=InnoDB;
@@ -240,7 +239,7 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE TABLE IF NOT EXISTS reviews (
   review_id        BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   reservation_id   BIGINT UNSIGNED NOT NULL,
-  venue_id         BIGINT UNSIGNED NOT NULL,
+  venue_id         BIGINT UNSIGNED NULL,
   user_id          VARCHAR(30) NOT NULL,
   rating           TINYINT UNSIGNED NOT NULL,
   content          TEXT NOT NULL,
@@ -254,7 +253,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   KEY ix_review_venue (venue_id, created_at),
   CONSTRAINT ck_rating CHECK (rating BETWEEN 1 AND 5),
   CONSTRAINT fk_reviews_resv  FOREIGN KEY (reservation_id) REFERENCES reservations(reservation_id) ON DELETE RESTRICT,
-  CONSTRAINT fk_reviews_venue FOREIGN KEY (venue_id)       REFERENCES venues(venue_id)        ON DELETE RESTRICT,
+  CONSTRAINT fk_reviews_venue FOREIGN KEY (venue_id)       REFERENCES venues(venue_id)        ON DELETE SET NULL,
   CONSTRAINT fk_reviews_user  FOREIGN KEY (user_id)        REFERENCES users(user_id)         ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
@@ -406,9 +405,10 @@ CREATE TRIGGER bi_reservations_snapshot
 BEFORE INSERT ON reservations
 FOR EACH ROW
 BEGIN
-  DECLARE v_deposit_rate DECIMAL(5,2);
-  DECLARE v_grade_id SMALLINT UNSIGNED;
-  DECLARE v_grade_disc DECIMAL(5,2);
+  DECLARE v_deposit_rate   DECIMAL(5,2);
+  DECLARE v_grade_id       SMALLINT UNSIGNED;
+  DECLARE v_grade_disc     DECIMAL(5,2);
+  DECLARE v_service_price  DECIMAL(10,2);
 
   SELECT COALESCE(vs.deposit_rate_percent, v.default_deposit_rate_percent)
     INTO v_deposit_rate
@@ -427,9 +427,12 @@ BEGIN
   SET NEW.applied_grade_discount_percent = v_grade_disc;
 
   IF NEW.total_price_at_booking IS NULL OR NEW.total_price_at_booking = 0 THEN
-    SELECT price INTO NEW.total_price_at_booking
-      FROM venue_services WHERE service_id = NEW.service_id;
-    SET NEW.total_price_at_booking = NEW.total_price_at_booking * NEW.party_size;
+    SELECT price
+      INTO v_service_price
+      FROM venue_services
+     WHERE service_id = NEW.service_id;
+
+    SET NEW.total_price_at_booking = v_service_price * NEW.party_size;
   END IF;
 
   SET NEW.deposit_amount =
@@ -481,6 +484,18 @@ BEGIN
   IF OLD.status <> NEW.status
      AND (OLD.status IN ('COMPLETED','NO_SHOW') OR NEW.status IN ('COMPLETED','NO_SHOW')) THEN
     CALL sp_recalc_user_grade(NEW.customer_user_id);
+  END IF;
+END$$
+
+-- Venue 삭제 시: 완료되지 않은 예약이 있으면 차단, 완료만 있으면 삭제 허용
+CREATE TRIGGER bd_venues_block_if_active_reservations
+BEFORE DELETE ON venues
+FOR EACH ROW
+BEGIN
+  IF EXISTS (SELECT 1 FROM reservations r
+               WHERE r.venue_id = OLD.venue_id
+                 AND r.status NOT IN ('COMPLETED')) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot delete venue with non-completed reservations.';
   END IF;
 END$$
 

@@ -1,4 +1,4 @@
-// frontend/src/pages/VenueDetail.js
+﻿// frontend/src/pages/VenueDetail.js
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -28,7 +28,7 @@ const VenueDetail = () => {
   const [images, setImages] = useState([]);
   const [averageRating, setAverageRating] = useState(null);
 
-  const [reviewSort, setReviewSort] = useState("latest"); // ⭐ 정렬 기능
+  const [reviewSort, setReviewSort] = useState("latest"); // 정렬 기능
 
   const [selectedService, setSelectedService] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -53,7 +53,7 @@ const VenueDetail = () => {
     fetchImages();
   }, [venueId]);
 
-  // 업장 정보
+ // 업장 정보
   const fetchVenueDetail = async () => {
     try {
       const res = await api.get(`/api/venues/${venueId}`);
@@ -143,6 +143,7 @@ const VenueDetail = () => {
     "//dapi.kakao.com/v2/maps/sdk.js?appkey=1644000945747cd560f0bb8c664162be&autoload=false&libraries=services";
   script.async = true;
 
+
   script.onload = () => {
     // 2) SDK 로딩 완료 후 kakao.maps.load 실행
     window.kakao.maps.load(() => {
@@ -228,7 +229,6 @@ const VenueDetail = () => {
         <div className="text-center py-20 text-gray-600">업장을 찾을 수 없습니다.</div>
       </div>
     );
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -354,34 +354,42 @@ const VenueDetail = () => {
             </select>
           </div>
 
-          {sortedReviews.length === 0 ? (
-            <p className="text-gray-500">아직 리뷰가 없습니다.</p>
-          ) : (
-            <div className="space-y-6">
-              {sortedReviews.map((r) => (
-                <div key={r.review_id} className="border-b pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold">{r.user?.real_name}</span>
-                    <span className="text-yellow-500">{"★".repeat(r.rating)}</span>
-                  </div>
+{sortedReviews.length === 0 ? (
+  <p className="text-gray-500">등록된 리뷰가 없습니다.</p>
+) : (
+  <div className="space-y-6">
+    {sortedReviews.map((r) => (
+      <div key={r.review_id} className="border-b pb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-semibold">{r.user?.real_name}</span>
+          <span className="text-yellow-500">{"★".repeat(r.rating)}</span>
+        </div>
 
-                  {r.has_image && (
-                    <img
-                      src={`/api/reviews/${r.review_id}/image`}
-                      className="w-full max-h-56 rounded mb-2 object-cover"
-                      alt="review"
-                    />
-                  )}
+        {r.has_image && (
+          <img
+            src={`/api/reviews/${r.review_id}/image`}
+            className="w-full max-h-56 rounded mb-2 object-cover"
+            alt="review"
+          />
+        )}
 
-                  <p className="text-gray-700 whitespace-pre-wrap">{r.content}</p>
+        <p className="text-gray-700 whitespace-pre-wrap">{r.content}</p>
 
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(r.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+        {r.owner_reply && (
+          <div className="mt-3 bg-gray-50 border rounded p-3 text-sm">
+            <p className="font-semibold text-gray-700">사장 댓글</p>
+            <p className="text-gray-800 whitespace-pre-wrap">{r.owner_reply}</p>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-400 mt-2">
+          {new Date(r.created_at).toLocaleDateString()}
+        </p>
+      </div>
+    ))}
+  </div>
+)}
+
         </div>
 
         {/* ======================================================

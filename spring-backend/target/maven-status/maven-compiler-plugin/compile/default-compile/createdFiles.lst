@@ -3,6 +3,8 @@ com\noshow\app\controller\ReviewImageController.class
 com\noshow\app\dto\VenueDto.class
 com\noshow\app\NoShowApplication.class
 com\noshow\app\service\VenueFaqService.class
+com\noshow\app\domain\entity\VenueImage.class
+com\noshow\app\controller\OwnerVenueImageController.class
 com\noshow\app\domain\repository\PaymentRepository.class
 com\noshow\app\dto\UpdateReservationStatusRequest.class
 com\noshow\app\controller\AdminController.class
@@ -44,11 +46,11 @@ com\noshow\app\dto\FaqDto$FaqDtoBuilder.class
 com\noshow\app\domain\entity\UserRole$UserRoleBuilder.class
 com\noshow\app\config\WebConfig$1.class
 com\noshow\app\domain\repository\VenueServiceRepository.class
-com\noshow\app\service\ReviewService.class
 com\noshow\app\domain\entity\LoginTypeConverter.class
 com\noshow\app\dto\CreateReservationRequest.class
 com\noshow\app\controller\VenueManagementController.class
 com\noshow\app\domain\repository\SystemSettingRepository.class
+com\noshow\app\controller\VenueImageController.class
 com\noshow\app\domain\entity\User.class
 com\noshow\app\controller\PaymentController.class
 com\noshow\app\controller\VenueController.class
@@ -69,8 +71,11 @@ com\noshow\app\domain\entity\VenueFaq$VenueFaqBuilder.class
 com\noshow\app\dto\CreateVenueRequest.class
 com\noshow\app\dto\ReservationDto$ReservationDtoBuilder.class
 com\noshow\app\dto\UserDto$UserDtoBuilder.class
+com\noshow\app\service\VenueImageService.class
 com\noshow\app\domain\entity\Role$RoleBuilder.class
 com\noshow\app\service\AuthService.class
+com\noshow\app\dto\VenueImageDto.class
+com\noshow\app\domain\entity\VenueImage$VenueImageBuilder.class
 com\noshow\app\dto\PaymentDto.class
 com\noshow\app\domain\entity\BusinessHour.class
 com\noshow\app\dto\GradeCountDto.class
@@ -80,7 +85,6 @@ com\noshow\app\domain\entity\Venue.class
 com\noshow\app\dto\SignupRequest.class
 com\noshow\app\dto\FaqDto.class
 com\noshow\app\dto\VenueServiceDto.class
-com\noshow\app\controller\ReviewController.class
 com\noshow\app\domain\repository\UserGradeRepository.class
 com\noshow\app\service\VenueAppService.class
 com\noshow\app\dto\LoginRequest.class
@@ -94,10 +98,12 @@ com\noshow\app\domain\repository\UserRoleRepository.class
 com\noshow\app\controller\OwnerReservationController.class
 com\noshow\app\domain\entity\UserRoleId.class
 com\noshow\app\dto\MyPageResponse$MyPageResponseBuilder.class
+com\noshow\app\dto\VenueImageDto$VenueImageDtoBuilder.class
 com\noshow\app\dto\VenueServiceDto$VenueServiceDtoBuilder.class
 com\noshow\app\common\Pagination.class
 com\noshow\app\dto\CreateFaqRequest.class
 com\noshow\app\domain\entity\VenueService.class
+com\noshow\app\domain\repository\VenueImageRepository.class
 com\noshow\app\controller\FaqController.class
 com\noshow\app\domain\entity\Payment$Status.class
 com\noshow\app\domain\repository\RoleRepository.class

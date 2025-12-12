@@ -1,8 +1,5 @@
 package com.noshow.app.domain.repository;
 
-import com.noshow.app.dto.AdminStatsDto;
-import com.noshow.app.dto.GradeCountDto;
-import com.noshow.app.dto.MonthlyReservationStatDto;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 
