@@ -22,6 +22,7 @@ com\noshow\app\dto\CreateBusinessHourRequest.class
 com\noshow\app\dto\CreateVenueServiceRequest.class
 com\noshow\app\dto\ReservationDto.class
 com\noshow\app\common\ApiResponse$ApiResponseBuilder.class
+com\noshow\app\dto\OwnerReplyRequest.class
 com\noshow\app\domain\entity\VenueFaq.class
 com\noshow\app\controller\ReservationController.class
 com\noshow\app\service\ReservationService$ReservationsPage.class
@@ -46,8 +47,10 @@ com\noshow\app\dto\FaqDto$FaqDtoBuilder.class
 com\noshow\app\domain\entity\UserRole$UserRoleBuilder.class
 com\noshow\app\config\WebConfig$1.class
 com\noshow\app\domain\repository\VenueServiceRepository.class
+com\noshow\app\service\ReviewService.class
 com\noshow\app\domain\entity\LoginTypeConverter.class
 com\noshow\app\dto\CreateReservationRequest.class
+com\noshow\app\controller\OwnerReviewController.class
 com\noshow\app\controller\VenueManagementController.class
 com\noshow\app\domain\repository\SystemSettingRepository.class
 com\noshow\app\controller\VenueImageController.class
@@ -85,6 +88,7 @@ com\noshow\app\domain\entity\Venue.class
 com\noshow\app\dto\SignupRequest.class
 com\noshow\app\dto\FaqDto.class
 com\noshow\app\dto\VenueServiceDto.class
+com\noshow\app\controller\ReviewController.class
 com\noshow\app\domain\repository\UserGradeRepository.class
 com\noshow\app\service\VenueAppService.class
 com\noshow\app\dto\LoginRequest.class

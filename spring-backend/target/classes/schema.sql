@@ -301,6 +301,7 @@ GROUP BY g.grade_id, g.grade_name
 ORDER BY users_in_grade DESC;
 
 -- 8) 프로시저 : 등급 자동 재산정
+-- initial로 자동 생성 X 직접 실행해야함
 DELIMITER $$
 
 CREATE PROCEDURE sp_recalc_user_grade(IN p_user_id VARCHAR(30))

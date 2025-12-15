@@ -18,6 +18,7 @@ import com.noshow.app.dto.CreateReservationRequest;
 import com.noshow.app.dto.PaymentDto;
 import com.noshow.app.dto.ReservationDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -41,8 +42,9 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReservationService {
-  private static final Duration DEPOSIT_TIMEOUT = Duration.ofMinutes(10);
+  private static final Duration DEPOSIT_TIMEOUT = Duration.ofMinutes(2);
   private static final String DEPOSIT_TIMEOUT_REASON = "Deposit payment window expired";
 
   private final ReservationRepository reservationRepository;
@@ -230,20 +232,14 @@ public class ReservationService {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the booker can pay the deposit");
     }
 
-    if (reservation.getStatus() == Reservation.Status.DEPOSIT_PENDING) {
-      LocalDateTime base = reservation.getCreatedAt() != null ? reservation.getCreatedAt() : LocalDateTime.now();
-      LocalDateTime expiry = base.plus(DEPOSIT_TIMEOUT);
-      if (LocalDateTime.now().isAfter(expiry)) {
-        reservation.setStatus(Reservation.Status.CANCELED);
-        reservation.setCanceledAt(LocalDateTime.now());
-        reservation.setCancelReason(DEPOSIT_TIMEOUT_REASON);
-        reservationRepository.save(reservation);
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "??? ?? ??? ???????.");
-      }
+    LocalDateTime now = LocalDateTime.now();
+    if (markDepositTimeoutIfExpired(reservation, now)) {
+      reservationRepository.save(reservation);
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 시간이 만료되었습니다.");
     }
 
     if (reservation.getStatus() != Reservation.Status.DEPOSIT_PENDING) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "??? ?? ??? ????.");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보증금 결제 상태가 아닙니다.");
     }
 
     Payment payment = Payment.builder()
@@ -293,19 +289,20 @@ public class ReservationService {
   @Transactional
   @Scheduled(fixedDelayString = "${app.deposit-expire-scan-ms:60000}")
   public void expireStaleDepositPending() {
-    LocalDateTime cutoff = LocalDateTime.now().minus(DEPOSIT_TIMEOUT);
-    List<Reservation> expired = reservationRepository.findByStatusAndCreatedAtBefore(
-      Reservation.Status.DEPOSIT_PENDING, cutoff);
-    if (expired.isEmpty()) {
+    LocalDateTime now = LocalDateTime.now();
+    List<Reservation> pending = reservationRepository.findByStatus(Reservation.Status.DEPOSIT_PENDING);
+    if (pending.isEmpty()) {
+      log.debug("Expire scan at {}: no deposit-pending reservations", now);
       return;
     }
-    LocalDateTime now = LocalDateTime.now();
-    expired.forEach(r -> {
-      r.setStatus(Reservation.Status.CANCELED);
-      r.setCanceledAt(now);
-      r.setCancelReason(DEPOSIT_TIMEOUT_REASON);
-    });
-    reservationRepository.saveAll(expired);
+    long expiredCount = 0;
+    for (Reservation r : pending) {
+      if (markDepositTimeoutIfExpired(r, now)) {
+        reservationRepository.save(r);
+        expiredCount++;
+      }
+    }
+    log.info("Expire scan at {}: pending={}, expired={}", now, pending.size(), expiredCount);
   }
 
   public record ReservationsPage(List<ReservationDto> data, Pagination pagination) {}
@@ -336,5 +333,21 @@ public class ReservationService {
       .paidAt(LocalDateTime.now())
       .build();
     paymentRepository.save(refund);
+  }
+
+  private boolean markDepositTimeoutIfExpired(Reservation reservation, LocalDateTime now) {
+    if (reservation.getStatus() != Reservation.Status.DEPOSIT_PENDING) {
+      return false;
+    }
+    LocalDateTime base = reservation.getBookedAt() != null
+      ? reservation.getBookedAt()
+      : (reservation.getCreatedAt() != null ? reservation.getCreatedAt() : now);
+    if (now.isAfter(base.plus(DEPOSIT_TIMEOUT))) {
+      reservation.setStatus(Reservation.Status.CANCELED);
+      reservation.setCanceledAt(now);
+      reservation.setCancelReason(DEPOSIT_TIMEOUT_REASON);
+      return true;
+    }
+    return false;
   }
 }

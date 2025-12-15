@@ -53,7 +53,7 @@ const VenueDetail = () => {
     fetchImages();
   }, [venueId]);
 
- // 업장 정보
+  // 업장 정보
   const fetchVenueDetail = async () => {
     try {
       const res = await api.get(`/api/venues/${venueId}`);

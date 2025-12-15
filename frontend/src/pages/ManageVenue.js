@@ -188,6 +188,58 @@ const ManageVenue = () => {
     }
   };
 
+  const handleDeleteService = async (serviceId) => {
+    if (!serviceId) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/api/owner/services/${serviceId}`);
+      setSuccess("서비스를 삭제했습니다.");
+      fetchServices();
+    } catch (err) {
+      setError(err.response?.data?.message || "서비스 삭제에 실패했습니다.");
+    }
+  };
+
+  const handleDeleteBusinessHour = async (businessHourId) => {
+    if (!businessHourId) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/api/owner/business-hours/${businessHourId}`);
+      setSuccess("영업시간을 삭제했습니다.");
+      fetchBusinessHours();
+    } catch (err) {
+      setError(err.response?.data?.message || "영업시간 삭제에 실패했습니다.");
+    }
+  };
+
+  const handleDeleteBlock = async (blockId) => {
+    if (!blockId) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/api/owner/blocks/${blockId}`);
+      setSuccess("예약 불가 시간을 삭제했습니다.");
+      fetchBlocks();
+    } catch (err) {
+      setError(err.response?.data?.message || "예약 불가 시간 삭제에 실패했습니다.");
+    }
+  };
+
+  const handleDeleteFaq = async (faqId) => {
+    if (!faqId) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/api/owner/faq/${faqId}`);
+      setSuccess("FAQ를 삭제했습니다.");
+      fetchFaqs();
+    } catch (err) {
+      setError(err.response?.data?.message || "FAQ 삭제에 실패했습니다.");
+    }
+  };
+
   const handleFaqSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -202,24 +254,35 @@ const ManageVenue = () => {
       setError("FAQ 등록 실패");
     }
   };
+  
+const handleImageUpload = async (e) => {
+  e.preventDefault();
+  if (!imageFile) return;
+  setError('');
+  setSuccess('');
+  try {
+    const form = new FormData();
+    form.append('image', imageFile);
+    await api.post(`/api/owner/venues/${venueId}/images`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    setSuccess('이미지를 업로드했습니다.');
+    fetchImages();
+  } catch (err) {
+    setError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
+  }
+};
 
-  const handleImageUpload = async (e) => {
-    e.preventDefault();
-    if (!imageFile) return;
+  const handleDeleteImage = async (imageId) => {
+    if (!imageId) return;
+    setError('');
+    setSuccess('');
     try {
-      const form = new FormData();
-      form.append("image", imageFile);
-
-      const res = await api.post(
-        `/api/owner/venues/${venueId}/images`,
-        form
-      );
-      if (res.data.success) {
-        setSuccess("이미지 업로드 완료");
-        fetchImages();
-      }
-    } catch {
-      setError("이미지 업로드 실패");
+      await api.delete(`/api/owner/venues/images/${imageId}`);
+      setSuccess('이미지를 삭제했습니다.');
+      fetchImages();
+    } catch (err) {
+      setError(err.response?.data?.message || '이미지 삭제에 실패했습니다.');
     }
   };
 
@@ -431,6 +494,12 @@ const ManageVenue = () => {
                       <p className="text-sm text-gray-700">
                         인원: {svc.min_party_size} ~ {svc.max_party_size}
                       </p>
+                      <button
+                        onClick={() => handleDeleteService(svc.service_id)}
+                        className="mt-3 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                      >
+                        삭제
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -508,7 +577,10 @@ const ManageVenue = () => {
                         </p>
                       </div>
 
-                      <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                      <button
+                        onClick={() => handleDeleteBusinessHour(bh.business_hour_id)}
+                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
                         삭제
                       </button>
                     </div>
@@ -595,7 +667,10 @@ const ManageVenue = () => {
                         )}
                       </div>
 
-                      <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                      <button
+                        onClick={() => handleDeleteBlock(b.block_id)}
+                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
                         삭제
                       </button>
                     </div>
@@ -673,7 +748,10 @@ const ManageVenue = () => {
                           </p>
                         </div>
 
-                        <button className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                        <button
+                          onClick={() => handleDeleteFaq(f.faq_id)}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
                           삭제
                         </button>
                       </div>
@@ -794,7 +872,10 @@ const ManageVenue = () => {
                         className="w-full h-24 rounded object-cover"
                         alt="업장 이미지"
                       />
-                      <button className="w-full mt-2 bg-red-600 text-white text-sm py-1 rounded hover:bg-red-700">
+                      <button
+                        onClick={() => handleDeleteImage(img.imageId || img.image_id)}
+                        className="w-full mt-2 bg-red-600 text-white text-sm py-1 rounded hover:bg-red-700"
+                      >
                         삭제
                       </button>
                     </div>

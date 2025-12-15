@@ -21,5 +21,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     java.time.LocalDateTime start);
   List<Reservation> findByVenue_VenueId(Long venueId);
   Page<Reservation> findByVenue_VenueId(Long venueId, Pageable pageable);
-  List<Reservation> findByStatusAndCreatedAtBefore(Status status, java.time.LocalDateTime before);
+  List<Reservation> findByStatusAndBookedAtBefore(Status status, java.time.LocalDateTime before);
+  List<Reservation> findByStatus(Status status);
 }
